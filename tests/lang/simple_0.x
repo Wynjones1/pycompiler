@@ -9,6 +9,12 @@ function fib(int a) -> int
     {
         return 1
     }
+
+    while(a < 10)
+    {
+        i += 1
+    }
+
     return fib(a - 1) + fib(a - 2)
 }
 
@@ -30,6 +36,11 @@ function main()
     for(int i := 0 ; i < 10; i += 1)
     {
         io.print(fib(i))
+    }
+
+    for(;;)
+    {
+        print("Hello")
     }
     function counter := make_counter(10)
     counter()

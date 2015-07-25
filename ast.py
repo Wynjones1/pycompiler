@@ -9,10 +9,28 @@ def make_node(name, graph):
     node_counter += 1
     return node
 
-def add_edge(graph, node0, node1, label):
+def add_edge(graph, node0, node1, label = ""):
     graph.add_edge(pydot.Edge(node0, node1, label=label))
 
+class SymbolTable(object):
+    def __init__(self):
+        self._data   = {}
+        self._parent = {}
+
+    def __getitem__(self, key):
+        try:
+            return self._data[key]
+        except KeyError:
+            if self._parent:
+                return self._parent[key]
+
+    def __setitem__(self, key):
+        pass
+
 class AST(object):
+    def __init__(self):
+        self._symbol_table = None
+
     def __repr__(self):
         return "ast.{}".format(type(self).__name__)
 
@@ -23,7 +41,9 @@ class AST(object):
 
     def make_graph(self, graph):
         raise NotImplementedError(type(self).__name__)
-        return make_node("", graph)
+
+    def make_tables(self, table = None):
+        raise NotImplementedError(type(self).__name__)
 
 class Program(AST):
     def __init__(self, statements):
@@ -35,8 +55,11 @@ class Program(AST):
         node0 = make_node("Top", graph)
         for s in self._statements:
             node1 = s.make_graph(graph)
-            add_edge(graph, node0, node1, "")
+            add_edge(graph, node0, node1)
         return node0
+
+    def make_tables(self, table = None):
+        pass
 
 class Function(AST):
     def __init__(self, name, params, ret_type, statements):
@@ -52,9 +75,9 @@ class Function(AST):
             node  = make_node("param", graph)
             node1 = type.make_graph(graph)
             node2 = identifier.make_graph(graph)
-            add_edge(graph, node0, node, "")
-            add_edge(graph, node, node1, "")
-            add_edge(graph, node, node2, "")
+            add_edge(graph, node0, node)
+            add_edge(graph, node, node1)
+            add_edge(graph, node, node2)
 
         if self._ret_type:
             node1 = self._ret_type.make_graph(graph)
@@ -62,7 +85,7 @@ class Function(AST):
 
         for s in self._statements:
             node1 = s.make_graph(graph)
-            add_edge(graph, node0, node1, "")
+            add_edge(graph, node0, node1)
         return node0
 
 class If(AST):
@@ -77,7 +100,7 @@ class If(AST):
         add_edge(graph, node0, node1, "cond")
         for s in self._statements:
             node1 = s.make_graph(graph)
-            add_edge(graph, node0, node1, "")
+            add_edge(graph, node0, node1)
         return node0
 
 class Return(AST):
@@ -88,7 +111,7 @@ class Return(AST):
     def make_graph(self, graph):
         node0 = make_node("return", graph)
         node1 = self._statement.make_graph(graph)
-        add_edge(graph, node0, node1, "")
+        add_edge(graph, node0, node1)
         return node0
 
 class Op(AST):
@@ -122,7 +145,7 @@ class Import(AST):
     def make_graph(self, graph):
         node0 = make_node("import", graph)
         node1 = self._identifier.make_graph(graph)
-        add_edge(graph, node0, node1, "")
+        add_edge(graph, node0, node1)
         return node0
 
 class FuncCall(AST):
@@ -166,13 +189,22 @@ class For(AST):
             add_edge(graph, node0, node1, "post")
         for s in self._statements:
             node1 = s.make_graph(graph)
-            add_edge(graph, node0, node1, "")
+            add_edge(graph, node0, node1)
         return node0
 
 class While(AST):
     def __init__(self, cond, statements):
         self._cond       = cond
         self._statements = statements
+
+    def make_graph(self, graph):
+        node0 = make_node("while", graph)
+        node1 = self._cond.make_graph(graph)
+        add_edge(graph, node0, node1, "cond")
+        for s in self._statements:
+            node2 = s.make_graph(graph)
+            add_edge(graph, node0, node2)
+        return node0
 
 class Decl(AST):
     def __init__(self, type, var, expr):
@@ -185,11 +217,10 @@ class Decl(AST):
         node1 = self._type.make_graph(graph)
         node2 = self._var.make_graph(graph)
         node3 = self._expr.make_graph(graph)
-        add_edge(graph, node0, node1, "")
-        add_edge(graph, node0, node2, "")
-        add_edge(graph, node0, node3, "")
+        add_edge(graph, node0, node1)
+        add_edge(graph, node0, node2)
+        add_edge(graph, node0, node3)
         return node0
-
 
 class Identifier(AST):
     def __init__(self, *identifiers):

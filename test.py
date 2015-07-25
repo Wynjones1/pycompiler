@@ -52,10 +52,10 @@ class TestLexer(unittest.TestCase):
 
 class TestParser(unittest.TestCase):
     def _test_generic(self, data, func, typeof):
-        for i in data:
+        for idx, i in enumerate(data):
             p = Parser(i)
-            self.assertTrue(isinstance(func(p), typeof))
-            self.assertTrue(p.done())
+            self.assertTrue(isinstance(func(p), typeof), "Test {}".format(idx))
+            self.assertTrue(p.done(), "Test {}".format(idx))
 
     def test_identifier(self):
         data = ["io.print", "hello", "a.b.d", "a.b_c123.d"]
@@ -86,7 +86,14 @@ class TestParser(unittest.TestCase):
         self._test_generic(data, parse_expression , ast.Number)
 
     def test_for(self):
-        data = ["for(int i := 0; i < 10; i += 1){}"]
+        data = ["for(int i := 0; i < 10; i += 1){}",
+                "for(int i := 0; i < 10;){}",
+                "for(int i := 0;; i += 1){}",
+                "for(i := 0; i < 10; i += 1){}",
+                "for(int i := 0;;){}",
+                "for(;i < 10;){}",
+                "for(;;i += 1){}",
+                "for(;;){}"]
         self._test_generic(data, parse_for, ast.For)
 
     def test_while(self):
