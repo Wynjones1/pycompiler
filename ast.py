@@ -13,9 +13,9 @@ def add_edge(graph, node0, node1, label = ""):
     graph.add_edge(pydot.Edge(node0, node1, label='"{}"'.format(label)))
 
 class SymbolTable(object):
-    def __init__(self):
+    def __init__(self, parent = None):
         self._data   = {}
-        self._parent = {}
+        self._parent = parent
 
     def __getitem__(self, key):
         try:
@@ -24,12 +24,19 @@ class SymbolTable(object):
             if self._parent:
                 return self._parent[key]
 
-    def __setitem__(self, key):
-        pass
+    def __setitem__(self, key, value):
+        if value in self._data:
+            raise InvalidParse("identifier {} already defined in this scope".format(value))
+        self._data[key] = value
+
+    def set_parent(self, parent):
+        assert isinstance(parent, SymbolTable)
+        self._parent = parent
 
 class AST(object):
     def __init__(self):
         self._symbol_table = None
+        self._parent       = None
 
     def __repr__(self):
         return "ast.{}".format(type(self).__name__)
@@ -47,6 +54,7 @@ class AST(object):
 
 class Program(AST):
     def __init__(self, statements):
+        super(Program, self).__init__()
         self._statements = statements
 
     def make_graph(self, graph):
@@ -59,7 +67,9 @@ class Program(AST):
         return node0
 
     def make_tables(self, table = None):
-        pass
+        self._symbol_table = SymbolTable()
+        for s in self._statements:
+            s.make_tables(self._symbol_table)
 
 class Function(AST):
     def __init__(self, name, params, ret_type, statements):
@@ -88,6 +98,13 @@ class Function(AST):
             add_edge(graph, node0, node1)
         return node0
 
+    def make_tables(self, table):
+        self._symbol_table = SymbolTable(table)
+        for type, name in self._params:
+            self._symbol_table[name] = type
+        for s in self._statements:
+            s.make_tables(self._symbol_table)
+
 class If(AST):
     def __init__(self, cond, statements):
         super(If, self).__init__()
@@ -103,6 +120,12 @@ class If(AST):
             add_edge(graph, node0, node1)
         return node0
 
+    def make_tables(self, table):
+        self._symbol_table = SymbolTable(table)
+        self._cond.make_tables(self._symbol_table)
+        for s in self._statements:
+            s.make_tables(self._symbol_table)
+
 class Return(AST):
     def __init__(self, statement):  
         super(Return, self).__init__()
@@ -113,6 +136,10 @@ class Return(AST):
         node1 = self._statement.make_graph(graph)
         add_edge(graph, node0, node1)
         return node0
+
+    def make_tables(self, table):
+        self._symbol_table = table
+        self._statement.make_tables(table)
 
 class Op(AST):
     depth = 0
@@ -138,6 +165,11 @@ class Op(AST):
         add_edge(graph, node0, node2, "rhs")
         return node0
 
+    def make_tables(self, table):
+        self._symbol_table = table
+        self._lhs.make_tables(table)
+        self._rhs.make_tables(table)
+
 class Import(AST):
     def __init__(self, identifier):
         self._identifier = identifier
@@ -162,12 +194,18 @@ class FuncCall(AST):
             add_edge(graph, node0, node2, "param")
         return node0
 
+    def make_tables(self, table):
+        self._symbol_table = table
+
 class Type(AST):
     def __init__(self, identifier):
         self._identifier = identifier
 
     def make_graph(self, graph):
         return self._identifier.make_graph(graph)
+
+    def make_table(self, graph):
+        pass
 
 class For(AST):
     def __init__(self, decl, invariant, post, statements):
@@ -192,6 +230,17 @@ class For(AST):
             add_edge(graph, node0, node1)
         return node0
 
+    def make_tables(self, table):
+        self._symbol_table = SymbolTable(table)
+        if self._decl:
+            self._decl.make_tables(self._symbol_table)
+        if self._invariant:
+            self._invariant.make_tables(self._symbol_table)
+        if self._post:
+            self._post.make_tables(self._symbol_table)
+        for s in self._statements:
+            s.make_tables(self._symbol_table)
+
 class While(AST):
     def __init__(self, cond, statements):
         self._cond       = cond
@@ -205,6 +254,12 @@ class While(AST):
             node2 = s.make_graph(graph)
             add_edge(graph, node0, node2)
         return node0
+
+    def make_tables(self, table):
+        self._symbol_table = SymbolTable(table)
+        self._cond.make_tables(self._symbol_table)
+        for s in self._statements:
+            s.make_tables(self._symbol_table)
 
 class Decl(AST):
     def __init__(self, type, var, expr):
@@ -223,6 +278,10 @@ class Decl(AST):
             node3 = self._expr.make_graph(graph)
             add_edge(graph, node0, node3, "init")
         return node0
+
+    def make_tables(self, table):
+        self._symbol_table = table
+        table[self._var] = self._type
 
 class ParamList(AST):
     def __init__(self):
@@ -248,6 +307,9 @@ class Identifier(AST):
         node0 = make_node(".".join(self._identifiers), graph)
         return node0
 
+    def make_tables(self, table):
+        self._symbol_table = table 
+
 class Literal(AST):
     def __init__(self, value):
         super(Literal, self).__init__()
@@ -256,6 +318,9 @@ class Literal(AST):
     def make_graph(self, graph):
         node0 = make_node(self._value, graph)
         return node0
+
+    def make_tables(self, table):
+        self._symbol_table = table
 
 class String(Literal):
     def __init__(self, value):
