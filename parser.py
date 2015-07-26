@@ -57,7 +57,7 @@ class Parser(object):
             self.next()
 
 indent  = 0
-verbose = False
+verbose = 0
 def parsefunc(func):
     @functools.wraps(func)
     def wrap(parser):
@@ -69,7 +69,8 @@ def parsefunc(func):
         try:
             retval = func(parser)
             indent -= 1
-            #print("\t" * indent + "exit : " + func.__name__)
+            if verbose:
+                print("\t" * indent + "OK   : " + func.__name__)
             return retval
         except InvalidParse as e:
             if e._function == None:
@@ -112,17 +113,11 @@ def parse_type(parser):
     return ast.Type(parse_identifier(parser))
 
 @parsefunc
-def parse_param(parser):
-    type = parse_type(parser)
-    name = parse_identifier(parser)
-    return (type, name)
-
-@parsefunc
 def parse_param_list(parser):
-    out = []
+    out = ast.ParamList()
     while True:
         try:
-            out.append(parse_param(parser))
+            out.append(parse_decl(parser))
         except InvalidParse:
             break
         if parser.peek(","):
@@ -140,11 +135,13 @@ def parse_number(parser):
     raise InvalidParse()
 
 @parsefunc
-def parse_var_decl(parser):
+def parse_decl(parser):
     type = parse_type(parser)
     id   = parse_identifier(parser)
-    parser.accept(":=")
-    expr = parse_expression(parser)
+    expr = None
+    if parser.peek(":="):
+        parser.next()
+        expr = parse_expression(parser)
     return ast.Decl(type, id, expr)
 
 @parsefunc
@@ -157,7 +154,7 @@ def parse_for(parser):
         parser.accept("(")
         if not parser.peek(";"):
             try:
-                decl = parse_var_decl(parser)
+                decl = parse_decl(parser)
             except InvalidParse:
                 decl = parse_expression(parser)
         parser.accept(";")
@@ -306,10 +303,10 @@ def parse_expression(parser):
 
 @parsefunc
 def parse_statement(parser):
-    funcs = (parse_var_decl,
+    funcs = (parse_function,
+             parse_decl,
              parse_expression,
              parse_for,
-             parse_function,
              parse_return,
              parse_while,
              parse_if,)
@@ -336,28 +333,33 @@ def parse_function(parser):
     ret_type = None
     # function declaration 
     parser.accept("function")
-    try:
-        name = parse_identifier(parser)
-        parser.accept("(")
-        params = parse_param_list(parser)
-        parser.accept(")")
-        # parse return type
-        if parser.peek("->"):
+    name = parse_identifier(parser)
+    # the function keyword is used to define a
+    # function and to declare a function variable
+    # a left paren distingushes the two cases
+    if parser.peek("("):
+        try:
             parser.next()
-            ret_type = parse_type(parser)
-        parser.consume("\n")
-        # start of function body
-        parser.accept("{")
-        parser.consume("\n")
-        statements = parse_statement_list(parser)
-        parser.consume("\n")
-        parser.accept("}")
-        return ast.Function(name       = name,
-                            params     = params,
-                            ret_type   = ret_type,
-                            statements = statements)
-    except InvalidParse as e:
-        raise ParseError("", parser.cur()), None, sys.exc_info()[2]
+            params = parse_param_list(parser)
+            parser.accept(")")
+            # parse return type
+            if parser.peek("->"):
+                parser.next()
+                ret_type = parse_type(parser)
+            parser.consume("\n")
+            # start of function body
+            parser.accept("{")
+            parser.consume("\n")
+            statements = parse_statement_list(parser)
+            parser.consume("\n")
+            parser.accept("}")
+            return ast.Function(name       = name,
+                                params     = params,
+                                ret_type   = ret_type,
+                                statements = statements)
+        except InvalidParse as e:
+            raise ParseError("", parser.cur()), None, sys.exc_info()[2]
+    raise InvalidParse()
 
 @parsefunc
 def parse_while(parser):

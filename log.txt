@@ -1,0 +1,113 @@
+F
+======================================================================
+FAIL: test_function_in_function (__main__.TestParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "./test.py", line 119, in test_function_in_function
+    self._test_generic(data, parse_function, ast.Function)
+  File "./test.py", line 60, in _test_generic
+    self.assertTrue(p.done(), "Test {}: {}".format(idx, result))
+AssertionError: Test 0: ast.Function
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (failures=1)
+enter: parse_function
+	enter: parse_identifier
+	OK   : parse_identifier
+	enter: parse_param_list
+		enter: parse_decl
+			enter: parse_type
+				enter: parse_identifier
+				fail : parse_identifier
+			fail : parse_type
+		fail : parse_decl
+	OK   : parse_param_list
+	enter: parse_statement_list
+		enter: parse_statement
+			enter: parse_function
+				enter: parse_identifier
+				OK   : parse_identifier
+				enter: parse_param_list
+					enter: parse_decl
+						enter: parse_type
+							enter: parse_identifier
+							fail : parse_identifier
+						fail : parse_type
+					fail : parse_decl
+				OK   : parse_param_list
+				enter: parse_statement_list
+					enter: parse_statement
+						enter: parse_function
+						fail : parse_function
+						enter: parse_decl
+							enter: parse_type
+								enter: parse_identifier
+								fail : parse_identifier
+							fail : parse_type
+						fail : parse_decl
+						enter: parse_expression
+							enter: parse_atomic_expr
+								enter: parse_func_call
+									enter: parse_identifier
+									fail : parse_identifier
+								fail : parse_func_call
+								enter: parse_identifier
+								fail : parse_identifier
+								enter: parse_number
+								fail : parse_number
+								enter: parse_paren_expr
+								fail : parse_paren_expr
+								enter: parse_string
+								fail : parse_string
+							fail : parse_atomic_expr
+						fail : parse_expression
+						enter: parse_for
+						fail : parse_for
+						enter: parse_return
+						fail : parse_return
+						enter: parse_while
+						fail : parse_while
+						enter: parse_if
+						fail : parse_if
+					fail : parse_statement
+				OK   : parse_statement_list
+			OK   : parse_function
+		OK   : parse_statement
+		enter: parse_statement
+			enter: parse_function
+			fail : parse_function
+			enter: parse_decl
+				enter: parse_type
+					enter: parse_identifier
+					fail : parse_identifier
+				fail : parse_type
+			fail : parse_decl
+			enter: parse_expression
+				enter: parse_atomic_expr
+					enter: parse_func_call
+						enter: parse_identifier
+						fail : parse_identifier
+					fail : parse_func_call
+					enter: parse_identifier
+					fail : parse_identifier
+					enter: parse_number
+					fail : parse_number
+					enter: parse_paren_expr
+					fail : parse_paren_expr
+					enter: parse_string
+					fail : parse_string
+				fail : parse_atomic_expr
+			fail : parse_expression
+			enter: parse_for
+			fail : parse_for
+			enter: parse_return
+			fail : parse_return
+			enter: parse_while
+			fail : parse_while
+			enter: parse_if
+			fail : parse_if
+		fail : parse_statement
+	OK   : parse_statement_list
+OK   : parse_function

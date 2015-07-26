@@ -10,7 +10,7 @@ def make_node(name, graph):
     return node
 
 def add_edge(graph, node0, node1, label = ""):
-    graph.add_edge(pydot.Edge(node0, node1, label=label))
+    graph.add_edge(pydot.Edge(node0, node1, label='"{}"'.format(label)))
 
 class SymbolTable(object):
     def __init__(self):
@@ -71,10 +71,10 @@ class Function(AST):
 
     def make_graph(self, graph):
         node0 = make_node("function {}".format(str(self._name)), graph)
-        for type, identifier in self._params:
+        for x in self._params:
             node  = make_node("param", graph)
-            node1 = type.make_graph(graph)
-            node2 = identifier.make_graph(graph)
+            node1 = x._type.make_graph(graph)
+            node2 = x._var.make_graph(graph)
             add_edge(graph, node0, node)
             add_edge(graph, node, node1)
             add_edge(graph, node, node2)
@@ -216,11 +216,26 @@ class Decl(AST):
         node0 = make_node("decl", graph)
         node1 = self._type.make_graph(graph)
         node2 = self._var.make_graph(graph)
-        node3 = self._expr.make_graph(graph)
         add_edge(graph, node0, node1)
         add_edge(graph, node0, node2)
-        add_edge(graph, node0, node3)
+
+        if self._expr:
+            node3 = self._expr.make_graph(graph)
+            add_edge(graph, node0, node3, "init")
         return node0
+
+class ParamList(AST):
+    def __init__(self):
+        self._data = []
+
+    def append(self, data):
+        self._data.append(data)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
 
 class Identifier(AST):
     def __init__(self, *identifiers):

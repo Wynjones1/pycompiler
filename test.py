@@ -54,8 +54,11 @@ class TestParser(unittest.TestCase):
     def _test_generic(self, data, func, typeof):
         for idx, i in enumerate(data):
             p = Parser(i)
-            self.assertTrue(isinstance(func(p), typeof), "Test {}".format(idx))
-            self.assertTrue(p.done(), "Test {}".format(idx))
+            result = func(p)
+            result.make_tables(ast.SymbolTable())
+            self.assertTrue(isinstance(result, typeof), "Test {}: {}".format(idx, i))
+            self.assertTrue(isinstance(result, ast.AST),"Test {}: {}".format(idx, i))
+            self.assertTrue(p.done(), "Test {}: {}".format(idx, result))
 
     def test_identifier(self):
         data = ["io.print", "hello", "a.b.d", "a.b_c123.d"]
@@ -69,17 +72,21 @@ class TestParser(unittest.TestCase):
         data = ["int", "function"]
         self._test_generic(data, parse_type, ast.Type)
 
-    def test_param(self):
-        data = ["int a, int b, int d, int c"]
-        self._test_generic(data, parse_param_list, list)
+    def test_param_list(self):
+        data = ["int a",
+                "int a, int b",
+                "",
+                "int a, int b, int d, int c"
+               ]
+        self._test_generic(data, parse_param_list, ast.ParamList)
 
     def test_number(self):
         data = ["123", "123.42", "123e23"]
         self._test_generic(data, parse_number, ast.Number)
 
-    def test_var_decl(self):
-        data = ["int a := 10", "float b := 10 * 30"]
-        self._test_generic(data, parse_var_decl, ast.Decl)
+    def test_decl(self):
+        data = ["int a", "int a := 10", "float b := 10 * 30"]
+        self._test_generic(data, parse_decl, ast.Decl)
 
     def test_expression(self):
         data = ["10"]
@@ -102,6 +109,13 @@ class TestParser(unittest.TestCase):
 
     def test_function(self):
         data = ["function a(int a) -> int{}"]
+        self._test_generic(data, parse_function, ast.Function)
+
+    def test_function_in_function(self):
+        data = ["""function a()
+        {
+           function a(){}
+        }"""]
         self._test_generic(data, parse_function, ast.Function)
 
     def test_import(self):
