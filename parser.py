@@ -405,3 +405,10 @@ def parse(tokens):
     except ParseError as e:
         print(e[1].highlight(10, 10))
         raise
+
+if __name__ == "__main__":
+    test = """
+    function a()
+    {}
+    """
+    print(parse(test))
