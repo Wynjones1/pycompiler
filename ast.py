@@ -100,8 +100,8 @@ class Function(AST):
 
     def make_tables(self, table):
         self._symbol_table = SymbolTable(table)
-        for type, name in self._params:
-            self._symbol_table[name] = type
+        for x in self._params:
+            self._symbol_table[x._var] = x._type
         for s in self._statements:
             s.make_tables(self._symbol_table)
 
@@ -204,7 +204,7 @@ class Type(AST):
     def make_graph(self, graph):
         return self._identifier.make_graph(graph)
 
-    def make_table(self, graph):
+    def make_tables(self, table):
         pass
 
 class For(AST):
@@ -295,6 +295,10 @@ class ParamList(AST):
 
     def __setitem__(self, key, value):
         self._data[key] = value
+
+    def make_tables(self, table):
+        for i in self._data:
+            i.make_tables(table)
 
 class Identifier(AST):
     def __init__(self, *identifiers):

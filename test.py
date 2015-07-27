@@ -118,9 +118,9 @@ class TestParser(unittest.TestCase):
         }"""]
         self._test_generic(data, parse_function, ast.Function)
 
-    def test_import(self):
-        data = ["import io.network"]
-        self._test_generic(data, parse_import, ast.Import)
+    #def test_import(self):
+    #    data = ["import io.network"]
+    #    self._test_generic(data, parse_import, ast.Import)
 
 if __name__ == "__main__":
     unittest.main()
