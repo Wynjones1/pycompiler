@@ -20,7 +20,7 @@ class TestLexer(unittest.TestCase):
         a = [x for x in lexer.tokenise(data)]
         self.assertEqual(len(a), len(test_data))
         for x in a:
-            self.assertTrue(isinstance(x, typeof), "{} is not of type {}".format(x, typeof.__name__))
+            self.assertIsInstance(x, typeof, "{} is not of type {}".format(x, typeof.__name__))
         #self.assertTrue(all([isinstance(x, type) for x in a]))
 
     def test_identifiers(self):
@@ -44,11 +44,10 @@ class TestLexer(unittest.TestCase):
         self._test_type(comp_list, lexer.Comp)
         self._test_type(comp_list, lexer.Comp, sep = "")
 
-    """
+    @unittest.expectedFailure
     def test_string(self):
         string_list = ['"hello, world!"', '"escaped string\""']
         self._test_type(string_list, lexer.String)
-    """
 
 class TestParser(unittest.TestCase):
     def _test_generic(self, data, func, typeof):
@@ -56,6 +55,7 @@ class TestParser(unittest.TestCase):
             p = Parser(i)
             result = func(p)
             result.make_tables(ast.SymbolTable())
+            result.make_tac()
             self.assertTrue(isinstance(result, typeof), "Test {}: {}".format(idx, i))
             self.assertTrue(isinstance(result, ast.AST),"Test {}: {}".format(idx, i))
             self.assertTrue(p.done(), "Test {}: {}".format(idx, result))
@@ -89,8 +89,11 @@ class TestParser(unittest.TestCase):
         self._test_generic(data, parse_decl, ast.Decl)
 
     def test_expression(self):
-        data = ["10"]
-        self._test_generic(data, parse_expression , ast.Number)
+        data = ["10 * 10",
+                "1 * 2 + 3",
+                "1 + 2 * 3",
+                "a < 10"]
+        self._test_generic(data, parse_expression , ast.Op)
 
     def test_for(self):
         data = ["for(int i := 0; i < 10; i += 1){}",
@@ -118,9 +121,43 @@ class TestParser(unittest.TestCase):
         }"""]
         self._test_generic(data, parse_function, ast.Function)
 
-    #def test_import(self):
-    #    data = ["import io.network"]
-    #    self._test_generic(data, parse_import, ast.Import)
+    def test_func_call(self):
+        data = ["a()", "a(1)", "a(1, 2, 3)"]
+        self._test_generic(data, parse_func_call, ast.FuncCall)
+
+    def test_if(self):
+        data = ["if(a < 10){}"]
+        self._test_generic(data, parse_if, ast.If)
+
+    def test_return(self):  
+        data = ["return", "return 10", "return a", "return (1 + 2)"]
+        self._test_generic(data, parse_return, ast.Return)
+
+    def test_program(self):
+        data = ["function a(){}"]
+        self._test_generic(data, parse_program, ast.Program)
+
+    @unittest.expectedFailure
+    def test_import(self):
+        data = ["import io.network"]
+        self._test_generic(data, parse_import, ast.Import)
+
+class TestParserFail(unittest.TestCase):
+    def _test_fail(self, func, data):
+        for x in data:
+            p = Parser(x)
+            self.assertRaises((InvalidParse, ParseError), func, p)
+
+    def test_for(self):
+        data = ["for(){",]
+        self._test_fail(parse_for, data)
+
+    def test_identifier(self):
+        data = ["a."]
+        self._test_fail(parse_identifier, data)
+
+class TestTAC(unittest.TestCase):
+    pass
 
 if __name__ == "__main__":
     unittest.main()

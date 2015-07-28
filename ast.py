@@ -1,5 +1,6 @@
 #!/usr/bin/env python2.7
 import pydot
+import tac
 
 node_counter = 0
 def make_node(name, graph):
@@ -50,6 +51,20 @@ class AST(object):
         raise NotImplementedError(type(self).__name__)
 
     def make_tables(self, table = None):
+        raise NotImplementedError(type(self).__name__)
+
+    def make_tac(self, label, var):
+        """ make_tac generates the three address code
+            intermediate representation
+
+            Args:
+            label -- count of labels used previously
+
+            Returns:
+            tuple (var, label) where:
+            var   -- last temporary or variable generated
+            label -- updated label count
+        """
         raise NotImplementedError(type(self).__name__)
 
 class Program(AST):
@@ -133,13 +148,15 @@ class Return(AST):
 
     def make_graph(self, graph):
         node0 = make_node("return", graph)
-        node1 = self._statement.make_graph(graph)
-        add_edge(graph, node0, node1)
+        if self._statement:
+            node1 = self._statement.make_graph(graph)
+            add_edge(graph, node0, node1)
         return node0
 
     def make_tables(self, table):
         self._symbol_table = table
-        self._statement.make_tables(table)
+        if self._statement:
+            self._statement.make_tables(table)
 
 class Op(AST):
     depth = 0

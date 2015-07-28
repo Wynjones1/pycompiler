@@ -207,4 +207,3 @@ NameError: global name 'tokenise' is not defined
 Ran 25 tests in 0.001s
 
 FAILED (errors=17, expected failures=2)
-Couldn't import dot_parser, loading of dot files will not be possible.

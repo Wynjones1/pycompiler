@@ -192,12 +192,13 @@ def parse_if(parser):
 @parsefunc
 def parse_return(parser):
     parser.accept("return")
+    expr = None
     try:
-        ret = ast.Return(parse_expression(parser))
-        parser.consume("\n")
-        return ret
+        expr = parse_expression(parser)
     except InvalidParse:
-        raise ParseError("", parser.cur()), None, sys.exc_info()[2]
+        pass
+    parser.consume("\n")
+    return ast.Return(expr)
 
 @parsefunc
 def parse_paren_expr(parser):
@@ -215,7 +216,7 @@ def parse_func_call(parser):
         params.append(parse_expression(parser))
         while parser.peek(","):
             parser.next()
-            out.append(parse_expr(parser))
+            params.append(parse_expression(parser))
     except InvalidParse:
         pass
     parser.accept(")")
@@ -233,10 +234,6 @@ def parse_atomic_expr(parser):
             return func(parser)
         except InvalidParse:
             pass
-    raise InvalidParse()
-
-@parsefunc
-def parse_ops(parser):
     raise InvalidParse()
 
 def is_left_assoc(op):
@@ -385,8 +382,7 @@ def parse_import(parser):
     except InvalidParse:
         raise ParseError("", parser.cur()), None, sys.exc_info()[2]
 
-def parse(tokens):
-    parser = Parser(tokens)
+def parse_program(parser):
     funcs = (parse_function, parse_import)
     statements = []
     parser.consume("\n")
@@ -405,6 +401,12 @@ def parse(tokens):
     except ParseError as e:
         print(e[1].highlight(10, 10))
         raise
+
+def parse(tokens):
+    parser  = Parser(tokens)
+    program = parse_program(parser)
+    program.make_tables()
+    return program
 
 if __name__ == "__main__":
     test = """
