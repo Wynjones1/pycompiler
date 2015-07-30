@@ -13,6 +13,14 @@ def make_node(name, graph):
 def add_edge(graph, node0, node1, label = ""):
     graph.add_edge(pydot.Edge(node0, node1, label='"{}"'.format(label)))
 
+class SemaData(object):
+    def __init__(self):
+        self._ret_type = None
+
+class SemaError(RuntimeError):
+    def __init__(self, *args, **kwargs):
+        super(SemaError, self).__init__(*args, **kwargs)
+
 class SymbolTable(object):
     def __init__(self, parent = None):
         self._data   = {}
@@ -24,6 +32,7 @@ class SymbolTable(object):
         except KeyError:
             if self._parent:
                 return self._parent[key]
+            raise
 
     def __setitem__(self, key, value):
         if value in self._data:
@@ -51,6 +60,9 @@ class AST(object):
         raise NotImplementedError(type(self).__name__)
 
     def make_tables(self, table = None):
+        raise NotImplementedError(type(self).__name__)
+
+    def sema(self, data):
         raise NotImplementedError(type(self).__name__)
 
     def make_tac(self, label, var):
@@ -81,10 +93,19 @@ class Program(AST):
             add_edge(graph, node0, node1)
         return node0
 
+    def __iter__(self):
+        return iter(self._statements)
+
     def make_tables(self, table = None):
         self._symbol_table = SymbolTable()
-        for s in self._statements:
+        for s in self:
             s.make_tables(self._symbol_table)
+
+    def sema(self, data = None):
+        if not data:
+            data = SemaData()
+        for s in self:
+            s.sema(data)
 
 class Function(AST):
     def __init__(self, name, params, ret_type, statements):
@@ -114,11 +135,20 @@ class Function(AST):
         return node0
 
     def make_tables(self, table):
+        table[self._name] = self
         self._symbol_table = SymbolTable(table)
         for x in self._params:
             self._symbol_table[x._var] = x._type
         for s in self._statements:
             s.make_tables(self._symbol_table)
+
+    def sema(self, data):
+        temp = data._ret_type
+        data._ret_type = self._ret_type
+        for s in self._statements:
+            s.sema(data)
+        data._ret_type = temp
+        
 
 class If(AST):
     def __init__(self, cond, statements):
@@ -141,6 +171,12 @@ class If(AST):
         for s in self._statements:
             s.make_tables(self._symbol_table)
 
+    def sema(self, data):
+        type0 = self._cond.sema(data)
+        resolve_type(type0, "int")
+        for s in self._statements:
+            s.sema(data)
+
 class Return(AST):
     def __init__(self, statement):  
         super(Return, self).__init__()
@@ -157,6 +193,14 @@ class Return(AST):
         self._symbol_table = table
         if self._statement:
             self._statement.make_tables(table)
+
+    def sema(self, data):
+        type0 = self._statement.sema(data)
+        resolve_type(type0, data._ret_type)
+
+def resolve_type(type0, type1, operation = None):
+    return
+    raise NotImplementedError()
 
 class Op(AST):
     depth = 0
@@ -187,6 +231,11 @@ class Op(AST):
         self._lhs.make_tables(table)
         self._rhs.make_tables(table)
 
+    def sema(self, data):
+        type0 = self._lhs.sema(data)
+        type1 = self._rhs.sema(data)
+        return resolve_type(type0, type1, self._optype)
+
 class Import(AST):
     def __init__(self, identifier):
         self._identifier = identifier
@@ -196,6 +245,9 @@ class Import(AST):
         node1 = self._identifier.make_graph(graph)
         add_edge(graph, node0, node1)
         return node0
+
+    def sema(self, data):
+        return None
 
 class FuncCall(AST):
     def __init__(self, identifier, params):
@@ -213,6 +265,16 @@ class FuncCall(AST):
 
     def make_tables(self, table):
         self._symbol_table = table
+
+    def sema(self, data):
+        function = self._symbol_table[self._identifier]
+        if not isinstance(function, Function):
+            raise SemaError("identifier {} is not a function".format(function))
+        if len(function._params) != len(self._params):
+            raise SemaError("number of arguments to function does not match")
+        for type0, statement in zip(function._params, self._params):
+            type1 = statement.sema(data)
+            resolve_type(type0, type1)
 
 class Type(AST):
     def __init__(self, identifier):
@@ -278,6 +340,12 @@ class While(AST):
         for s in self._statements:
             s.make_tables(self._symbol_table)
 
+    def sema(self, data):
+        type0 = self._cond.sema(data)
+        resolve_type(type0, "int")
+        for s in self._statements:
+            s.sema(data)
+
 class Decl(AST):
     def __init__(self, type, var, expr):
         self._type = type
@@ -299,6 +367,10 @@ class Decl(AST):
     def make_tables(self, table):
         self._symbol_table = table
         table[self._var] = self._type
+
+    def sema(self, data):
+        type0 = self._expr.sema(data)
+        resolve_type(self._type, type0)
 
 class ParamList(AST):
     def __init__(self):
@@ -331,6 +403,11 @@ class Identifier(AST):
     def make_tables(self, table):
         self._symbol_table = table 
 
+    def sema(self, data):
+        print(self._identifiers)
+        print(self._symbol_table._data.items()[0][0])
+        return self._symbol_table[self]
+
 class Literal(AST):
     def __init__(self, value):
         super(Literal, self).__init__()
@@ -355,6 +432,12 @@ class Integer(Number):
     def __init__(self, value):
         super(Integer, self).__init__(value)
 
+    def sema(self, data):
+        return "int"
+
 class Float(Number):
     def __init__(self, value):
         super(Float, self).__init__(value)
+
+    def sema(self, data):
+        return "int"

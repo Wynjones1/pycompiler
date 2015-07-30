@@ -1,8 +1,8 @@
 #!/usr/bin/env python2.7
-from lexer import *
 import functools
+import ast
 import sys
-import argparse
+from   lexer import *
 
 class Parser(object):
     def __init__(self, tokens):
@@ -107,9 +107,6 @@ def parse_string(parser):
 
 @parsefunc
 def parse_type(parser):
-    if parser.peek("function"):
-        parser.next()
-        return ast.Type(ast.Identifier("function"))
     return ast.Type(parse_identifier(parser))
 
 @parsefunc
@@ -331,32 +328,27 @@ def parse_function(parser):
     # function declaration 
     parser.accept("function")
     name = parse_identifier(parser)
-    # the function keyword is used to define a
-    # function and to declare a function variable
-    # a left paren distingushes the two cases
-    if parser.peek("("):
-        try:
+    try:
+        parser.accept("(")
+        params = parse_param_list(parser)
+        parser.accept(")")
+        # parse return type
+        if parser.peek("->"):
             parser.next()
-            params = parse_param_list(parser)
-            parser.accept(")")
-            # parse return type
-            if parser.peek("->"):
-                parser.next()
-                ret_type = parse_type(parser)
-            parser.consume("\n")
-            # start of function body
-            parser.accept("{")
-            parser.consume("\n")
-            statements = parse_statement_list(parser)
-            parser.consume("\n")
-            parser.accept("}")
-            return ast.Function(name       = name,
-                                params     = params,
-                                ret_type   = ret_type,
-                                statements = statements)
-        except InvalidParse as e:
-            raise ParseError("", parser.cur()), None, sys.exc_info()[2]
-    raise InvalidParse()
+            ret_type = parse_type(parser)
+        parser.consume("\n")
+        # start of function body
+        parser.accept("{")
+        parser.consume("\n")
+        statements = parse_statement_list(parser)
+        parser.consume("\n")
+        parser.accept("}")
+        return ast.Function(name       = name,
+                            params     = params,
+                            ret_type   = ret_type,
+                            statements = statements)
+    except InvalidParse as e:
+        raise ParseError("", parser.cur()), None, sys.exc_info()[2]
 
 @parsefunc
 def parse_while(parser):
@@ -409,8 +401,9 @@ def parse(tokens):
     return program
 
 if __name__ == "__main__":
+    import argparse
     test = """
     function a()
     {}
     """
-    print(parse(test))
+    parse(test).output_graph("out.png")

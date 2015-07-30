@@ -18,7 +18,7 @@ function fib(int a) -> int
     return fib(a - 1) + fib(a - 2)
 }
 
-function make_counter(int a) -> function
+function make_counter(int a) -> int
 {
     function temp()
     {
@@ -27,6 +27,7 @@ function make_counter(int a) -> function
             io.print(i)
         }
     }
+    return temp()
 }
 
 function main()
@@ -42,7 +43,6 @@ function main()
     {
         print("Hello")
     }
-    function counter := make_counter(10)
     counter()
     referenced_above(10)
     a.append(10)

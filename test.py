@@ -1,12 +1,12 @@
 #!/usr/bin/env python2.7
 import unittest
-import lexer
-from   compiler import *
+from src        import lexer
+from src.parser import *
 
 class TestLexer(unittest.TestCase):
     def test_simple(self):
         data = "simple test case 213"
-        a = [x for x in lexer.tokenise(data)]
+        a = [x for x in tokenise(data)]
         self.assertEqual(len(a), 4)
 
     def test_keywords(self):
@@ -55,7 +55,7 @@ class TestParser(unittest.TestCase):
             p = Parser(i)
             result = func(p)
             result.make_tables(ast.SymbolTable())
-            result.make_tac()
+            #result.make_tac()
             self.assertTrue(isinstance(result, typeof), "Test {}: {}".format(idx, i))
             self.assertTrue(isinstance(result, ast.AST),"Test {}: {}".format(idx, i))
             self.assertTrue(p.done(), "Test {}: {}".format(idx, result))
@@ -69,7 +69,7 @@ class TestParser(unittest.TestCase):
         self._test_generic(data, parse_string, ast.String)
 
     def test_type(self):
-        data = ["int", "function"]
+        data = ["int"]
         self._test_generic(data, parse_type, ast.Type)
 
     def test_param_list(self):
@@ -111,7 +111,10 @@ class TestParser(unittest.TestCase):
         self._test_generic(data, parse_while, ast.While)
 
     def test_function(self):
-        data = ["function a(int a) -> int{}"]
+        data = ["function a(int a) -> int{}",
+                "function a(){}",
+                "function a(int a, int b){}",
+                "function a(int a) -> int{}"]
         self._test_generic(data, parse_function, ast.Function)
 
     def test_function_in_function(self):

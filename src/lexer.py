@@ -1,7 +1,5 @@
 #!/usr/bin/env python2.7
 import re
-import ast
-import argparse
 
 class Token(object):
     def __init__(self, value, line, pos, data):
@@ -188,9 +186,13 @@ def tokenise(data):
             raise Exception("Lexing error:\n{}".format(string))
 
 if __name__ == "__main__":
+    import argparse
+    import os
+    from   os.path import join as pjoin
+    filepath = os.path.dirname(os.path.realpath(__file__))
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--input", "-i",
-                                 default = "tests/pass/simple_0.x")
+                                 default = pjoin(filepath, "../tests/pass/simple_0.x"))
     args = argument_parser.parse_args()
 
     data = open(args.input).read()
