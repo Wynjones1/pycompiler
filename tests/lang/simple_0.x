@@ -10,6 +10,7 @@ function fib(int a) -> int
         return 1
     }
 
+    int i
     while(a < 10)
     {
         i += 1

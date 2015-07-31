@@ -6,8 +6,8 @@ from   parse import *
 from   os.path import join as pjoin
 
 def main(*args, **kwargs):
-    default_file = "simple_0.x"
     default_file = "single_function.x"
+    default_file = "simple_0.x"
     filepath = os.path.dirname(os.path.realpath(__file__))
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--input", "-i", default = pjoin(filepath, "../tests/lang/" + default_file))
