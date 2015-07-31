@@ -1,6 +1,6 @@
 function main()
 {
-    int b := 10
+    int a := 10
     a := 1 + 2 * 3
     return
 }
