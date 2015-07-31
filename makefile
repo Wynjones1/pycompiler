@@ -9,7 +9,7 @@ test:
 	./test.py
 
 clean:
-	rm -Rf *.pyc *.png *.txt htmlcov env
+	rm -Rf src/*.pyc *.pyc *.png *.txt htmlcov env
 
 env:
 	mkdir -p env 

@@ -1,7 +1,8 @@
 #!/usr/bin/env python2.7
 import unittest
-from src        import lexer
-from src.parser import *
+from src             import lexer
+from src.parse       import *
+from src.syntax_tree import *
 
 class TestLexer(unittest.TestCase):
     def test_simple(self):
@@ -161,6 +162,57 @@ class TestParserFail(unittest.TestCase):
 
 class TestTAC(unittest.TestCase):
     pass
+
+class TestAST(unittest.TestCase):
+    def test_ast_identifier_equals(self):
+        id0 = ast.Identifier("a")
+        id1 = ast.Identifier("a", "b")
+        data = [(ast.Identifier("a", "b"), ast.Identifier("a", "b")),
+                (ast.Identifier("a"), ast.Identifier("a")),
+                (ast.Identifier("a", "b", "c"), ast.Identifier("a", "b", "c")),
+                (id0, id0),
+                (id1, id1)
+               ]
+        for lhs, rhs in data:
+            self.assertEquals(lhs, rhs)
+
+    def test_ast_identifier_not_equals(self):
+        id0 = ast.Identifier("a")
+        id1 = ast.Identifier("a", "b")
+        data = [(ast.Identifier("a"), ast.Identifier("b")),
+                (ast.Identifier("a"), ast.Identifier("a", "b"))]
+        for lhs, rhs in data:
+            self.assertNotEquals(lhs, rhs)
+
+class TestSymbolTable(unittest.TestCase):
+    def test_identifier_in_same_scope(self):
+        table = SymbolTable()
+        test = Type("int")
+        table[ast.Identifier("a")] = test
+        temp = table[ast.Identifier("a")]
+        self.assertIs(test, temp)
+
+    def test_identifeir_in_different_scope(self):
+        table = SymbolTable()
+        test = Type("int")
+        table[ast.Identifier("a")] = test
+        table = SymbolTable(table)
+        temp = table[ast.Identifier("a")]
+        self.assertIs(test, temp)
+
+    def test_identifier_in_multiple_scopes(self):
+        table = SymbolTable()
+        table[ast.Identifier("a")] = Type("int")
+        table = SymbolTable(table)
+        test = Type("int")
+        table[ast.Identifier("a")] = test
+        temp = table[ast.Identifier("a")]
+        self.assertIs(test, temp)
+
+    def test_identifier_not_in_table(self):
+        table = SymbolTable()
+        with self.assertRaises(KeyError):
+            table[ast.Identifier("a")]
 
 if __name__ == "__main__":
     unittest.main()

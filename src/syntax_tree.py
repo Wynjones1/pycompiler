@@ -18,10 +18,17 @@ class SemaData(object):
         self._ret_type = None
 
 class SemaError(RuntimeError):
-    def __init__(self, *args, **kwargs):
-        super(SemaError, self).__init__(*args, **kwargs)
+    IDENTIFIER_UNDEFINED    = 0
+    IDENTIFIER_NOT_FUNCTION = 1
+    FUNCTION_PARAM_MISMATCH = 2
+    def __init__(self, message, errno):
+        super(SemaError, self).__init__(message, errno)
 
 class SymbolTable(object):
+    """ SymbolTable contains the mapping of identifiers to types
+        it can contain point to one of
+        function or type
+    """
     def __init__(self, parent = None):
         self._data   = {}
         self._parent = parent
@@ -29,12 +36,14 @@ class SymbolTable(object):
     def __getitem__(self, key):
         try:
             return self._data[key]
-        except KeyError:
+        except KeyError as e:
             if self._parent:
                 return self._parent[key]
             raise
 
     def __setitem__(self, key, value):
+        assert(isinstance(value, (Function, Type)))
+        assert(isinstance(key, Identifier))
         if value in self._data:
             raise InvalidParse("identifier {} already defined in this scope".format(value))
         self._data[key] = value
@@ -42,6 +51,15 @@ class SymbolTable(object):
     def set_parent(self, parent):
         assert isinstance(parent, SymbolTable)
         self._parent = parent
+
+    def __str__(self):
+        out = ""
+        if self._parent:
+            out = str(self._parent)
+        out += str(self._data) + "\n"
+        return out
+
+_global_symbol_table = SymbolTable()
 
 class AST(object):
     def __init__(self):
@@ -93,18 +111,15 @@ class Program(AST):
             add_edge(graph, node0, node1)
         return node0
 
-    def __iter__(self):
-        return iter(self._statements)
-
     def make_tables(self, table = None):
         self._symbol_table = SymbolTable()
-        for s in self:
+        for s in self._statements:
             s.make_tables(self._symbol_table)
 
     def sema(self, data = None):
         if not data:
             data = SemaData()
-        for s in self:
+        for s in self._statements:
             s.sema(data)
 
 class Function(AST):
@@ -118,12 +133,12 @@ class Function(AST):
     def make_graph(self, graph):
         node0 = make_node("function {}".format(str(self._name)), graph)
         for x in self._params:
-            node  = make_node("param", graph)
-            node1 = x._type.make_graph(graph)
-            node2 = x._var.make_graph(graph)
-            add_edge(graph, node0, node)
-            add_edge(graph, node, node1)
-            add_edge(graph, node, node2)
+            node1  = make_node("param", graph)
+            node2 = x._type.make_graph(graph)
+            node3 = x._var.make_graph(graph)
+            add_edge(graph, node0, node1)
+            add_edge(graph, node1, node2)
+            add_edge(graph, node1, node3)
 
         if self._ret_type:
             node1 = self._ret_type.make_graph(graph)
@@ -137,8 +152,7 @@ class Function(AST):
     def make_tables(self, table):
         table[self._name] = self
         self._symbol_table = SymbolTable(table)
-        for x in self._params:
-            self._symbol_table[x._var] = x._type
+        self._params.make_tables(table)
         for s in self._statements:
             s.make_tables(self._symbol_table)
 
@@ -167,7 +181,7 @@ class If(AST):
 
     def make_tables(self, table):
         self._symbol_table = SymbolTable(table)
-        self._cond.make_tables(self._symbol_table)
+        self._cond.make_tables(table)
         for s in self._statements:
             s.make_tables(self._symbol_table)
 
@@ -195,8 +209,9 @@ class Return(AST):
             self._statement.make_tables(table)
 
     def sema(self, data):
-        type0 = self._statement.sema(data)
-        resolve_type(type0, data._ret_type)
+        if self._statement:
+            type0 = self._statement.sema(data)
+            resolve_type(type0, data._ret_type)
 
 def resolve_type(type0, type1, operation = None):
     return
@@ -265,13 +280,16 @@ class FuncCall(AST):
 
     def make_tables(self, table):
         self._symbol_table = table
+        self._identifier.make_tables(table)
+        for s in self._params:
+            s.make_tables(table)
 
     def sema(self, data):
         function = self._symbol_table[self._identifier]
         if not isinstance(function, Function):
-            raise SemaError("identifier {} is not a function".format(function))
+            raise SemaError("identifier {} is not a function".format(function), 1)
         if len(function._params) != len(self._params):
-            raise SemaError("number of arguments to function does not match")
+            raise SemaError("number of arguments to function does not match", 2)
         for type0, statement in zip(function._params, self._params):
             type1 = statement.sema(data)
             resolve_type(type0, type1)
@@ -336,7 +354,7 @@ class While(AST):
 
     def make_tables(self, table):
         self._symbol_table = SymbolTable(table)
-        self._cond.make_tables(self._symbol_table)
+        self._cond.make_tables(table)
         for s in self._statements:
             s.make_tables(self._symbol_table)
 
@@ -392,21 +410,32 @@ class ParamList(AST):
 class Identifier(AST):
     def __init__(self, *identifiers):
         self._identifiers = identifiers
-
-    def __str__(self):
-        return ".".join(self._identifiers)
+        self._strval      = ".".join(identifiers)
+    def __repr__(self):
+        return "Identifier<{}>".format(self._strval)
 
     def make_graph(self, graph):
-        node0 = make_node(".".join(self._identifiers), graph)
+        node0 = make_node(self._strval, graph)
         return node0
 
     def make_tables(self, table):
         self._symbol_table = table 
 
+    def __eq__(self, other):
+        if not isinstance(other, Identifier):
+            return False
+        if len(self._identifiers) != len(other._identifiers):
+            return False
+        return all(x == y for x, y, in zip(self._identifiers, other._identifiers))
+
+    def __hash__(self):
+        return self._strval.__hash__()
+
     def sema(self, data):
-        print(self._identifiers)
-        print(self._symbol_table._data.items()[0][0])
-        return self._symbol_table[self]
+        try:
+            return self._symbol_table[self]
+        except KeyError:
+            raise SemaError("Identifier '{}' cannot be found in the current scope.".format(self._strval), 0)
 
 class Literal(AST):
     def __init__(self, value):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 import functools
-import ast
+import syntax_tree as ast
 import sys
 from   lexer import *
 
