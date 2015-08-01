@@ -56,6 +56,9 @@ class Parser(object):
         while self.peek(test):
             self.next()
 
+    def __getitem__(self, index):
+        return self._tokens[index]
+
 indent  = 0
 verbose = 0
 def parsefunc(func):
@@ -63,6 +66,7 @@ def parsefunc(func):
     def wrap(parser):
         global indent
         pos = parser.get_pos()
+        start_token = parser[pos]
         if verbose:
             print("\t" * indent + "enter: " + func.__name__)
         indent += 1
@@ -71,6 +75,8 @@ def parsefunc(func):
             indent -= 1
             if verbose:
                 print("\t" * indent + "OK   : " + func.__name__)
+            retval._start_token = start_token
+            retval._end_token   = parser[parser.get_pos()]
             return retval
         except InvalidParse as e:
             if e._function == None:
@@ -320,7 +326,7 @@ def parse_statement_list(parser):
             parser.consume("\n")
         except InvalidParse:
             break
-    return out
+    return ast.StatementList(*out)
 
 @parsefunc
 def parse_function(parser):

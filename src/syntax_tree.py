@@ -65,6 +65,8 @@ class AST(object):
     def __init__(self):
         self._symbol_table = None
         self._parent       = None
+        self._start_token  = None
+        self._end_token    = None
 
     def __repr__(self):
         return "ast.{}".format(type(self).__name__)
@@ -122,6 +124,19 @@ class Program(AST):
         for s in self._statements:
             s.sema(data)
 
+class StatementList(AST):
+    def __init__(self, *statements):
+        super(StatementList, self).__init__()
+        self._statements = statements
+
+    def make_tables(self, table):
+        for s in self._statements:
+            s.make_tables(table)
+
+    def sema(self, data):
+        for s in self._statements:
+            s.sema(data)
+
 class Function(AST):
     def __init__(self, name, params, ret_type, statements):
         super(Function, self).__init__()
@@ -153,14 +168,12 @@ class Function(AST):
         table[self._name] = self
         self._symbol_table = SymbolTable(table)
         self._params.make_tables(table)
-        for s in self._statements:
-            s.make_tables(self._symbol_table)
+        self._statements.make_tables(table)
 
     def sema(self, data):
         temp = data._ret_type
         data._ret_type = self._ret_type
-        for s in self._statements:
-            s.sema(data)
+        self._statements.sema(data)
         data._ret_type = temp
         
 
@@ -182,14 +195,12 @@ class If(AST):
     def make_tables(self, table):
         self._symbol_table = SymbolTable(table)
         self._cond.make_tables(table)
-        for s in self._statements:
-            s.make_tables(self._symbol_table)
+        self._statements.make_tables(self._symbol_table)
 
     def sema(self, data):
         type0 = self._cond.sema(data)
         resolve_type(type0, "int")
-        for s in self._statements:
-            s.sema(data)
+        self._statements.sema(data)
 
 class Return(AST):
     def __init__(self, statement):  
@@ -335,8 +346,17 @@ class For(AST):
             self._invariant.make_tables(self._symbol_table)
         if self._post:
             self._post.make_tables(self._symbol_table)
-        for s in self._statements:
-            s.make_tables(self._symbol_table)
+        self._statements.make_tables(self._symbol_table)
+
+    def sema(self, data):
+        if self._decl:
+            type0 = self._decl.sema(data)
+        if self._invariant:
+            type0 = self._invariant.sema(data)
+            resolve_type(type0, "int")
+        if self._post:
+            type0 = self._post.sema(data)
+        self._statements.sema(data)
 
 class While(AST):
     def __init__(self, cond, statements):
@@ -355,14 +375,12 @@ class While(AST):
     def make_tables(self, table):
         self._symbol_table = SymbolTable(table)
         self._cond.make_tables(table)
-        for s in self._statements:
-            s.make_tables(self._symbol_table)
+        self._statements.make_tables(self._symbol_table)
 
     def sema(self, data):
         type0 = self._cond.sema(data)
         resolve_type(type0, "int")
-        for s in self._statements:
-            s.sema(data)
+        self._statements.sema(data)
 
 class Decl(AST):
     def __init__(self, type, var, expr):
@@ -387,8 +405,9 @@ class Decl(AST):
         table[self._var] = self._type
 
     def sema(self, data):
-        type0 = self._expr.sema(data)
-        resolve_type(self._type, type0)
+        if self._expr:
+            type0 = self._expr.sema(data)
+            resolve_type(self._type, type0)
 
 class ParamList(AST):
     def __init__(self):
@@ -406,6 +425,9 @@ class ParamList(AST):
     def make_tables(self, table):
         for i in self._data:
             i.make_tables(table)
+
+    def __len__(self):
+        return len(self._data)
 
 class Identifier(AST):
     def __init__(self, *identifiers):
