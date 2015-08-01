@@ -66,7 +66,7 @@ def parsefunc(func):
     def wrap(parser):
         global indent
         pos = parser.get_pos()
-        start_token = parser[pos]
+        start_token = parser[pos] if pos >= 0 else None
         if verbose:
             print("\t" * indent + "enter: " + func.__name__)
         indent += 1
@@ -76,7 +76,8 @@ def parsefunc(func):
             if verbose:
                 print("\t" * indent + "OK   : " + func.__name__)
             retval._start_token = start_token
-            retval._end_token   = parser[parser.get_pos()]
+            pos = parser.get_pos()
+            retval._end_token   = parser[pos] if pos >= 1 else None
             return retval
         except InvalidParse as e:
             if e._function == None:
@@ -330,7 +331,6 @@ def parse_statement_list(parser):
 
 @parsefunc
 def parse_function(parser):
-    ret_type = None
     # function declaration 
     parser.accept("function")
     name = parse_identifier(parser)
@@ -342,6 +342,8 @@ def parse_function(parser):
         if parser.peek("->"):
             parser.next()
             ret_type = parse_type(parser)
+        else:
+            ret_type = ast.Type("void")
         parser.consume("\n")
         # start of function body
         parser.accept("{")

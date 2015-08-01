@@ -19,13 +19,16 @@ function fib(int a) -> int
     return fib(a - 1) + fib(a - 2)
 }
 
+function print(int message)
+{}
+
 function make_counter(int a) -> int
 {
     function temp()
     {
         for(int i := 0; i < a; i += 1)
         {
-            io.print(i)
+            print(i)
         }
     }
     return temp()
@@ -37,16 +40,15 @@ function main()
     int a := 10
     for(int i := 0 ; i < 10; i += 1)
     {
-        io.print(fib(i))
+        print(fib(i))
     }
 
     for(;;)
     {
         print("Hello")
     }
-    counter()
+    make_counter(10)
     referenced_above(10)
-    a.append(10)
 }
 
 // this function is referenced in main

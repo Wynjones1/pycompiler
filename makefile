@@ -18,5 +18,6 @@ env:
 	cdsource bin/activate; pip install pydot coverage
 
 coverage:
-	coverage run ./test.py
+	rm -Rf .coverage htmlcov
+	coverage run --branch ./test.py
 	coverage html

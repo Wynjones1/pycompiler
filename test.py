@@ -1,5 +1,6 @@
 #!/usr/bin/env python2.7
 import unittest
+import types
 from src             import lexer
 from src.parse       import *
 from src.syntax_tree import *
@@ -125,6 +126,17 @@ class TestParser(unittest.TestCase):
         }"""]
         self._test_generic(data, parse_function, ast.Function)
 
+    def test_function_param_list(self):
+        data = ["function a(){}"]
+        for d in data:
+            parser = Parser(d)
+            func = parse_function(parser)
+            self.assertIsInstance(func, ast.Function)
+            self.assertIsInstance(func._name,      ast.Identifier)
+            self.assertIsInstance(func._params,    ast.ParamList)
+            self.assertIsInstance(func._ret_type,  ast.Type)
+            self.assertIsInstance(func._statements,ast.StatementList)
+
     def test_func_call(self):
         data = ["a()", "a(1)", "a(1, 2, 3)"]
         self._test_generic(data, parse_func_call, ast.FuncCall)
@@ -138,7 +150,7 @@ class TestParser(unittest.TestCase):
         self._test_generic(data, parse_return, ast.Return)
 
     def test_program(self):
-        data = ["function a(){}"]
+        data = ["", "function a(){}"]
         self._test_generic(data, parse_program, ast.Program)
 
     @unittest.expectedFailure

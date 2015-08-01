@@ -23,6 +23,13 @@ def main(*args, **kwargs):
         program.sema()
     except ast.SemaError as e:
         print(e)
+        print(e.ast._end_token.highlight(5, 5))
+        raise
+    except KeyError as e:
+        print(e)
+        #print(e.ast._start_token.highlight(5, 5))
+        print(e.ast._end_token.highlight(5, 5))
+        raise
     graph = program.output_graph("out.png")
 
 if __name__ == "__main__":
