@@ -226,5 +226,8 @@ class TestSymbolTable(unittest.TestCase):
         with self.assertRaises(KeyError):
             table[ast.Identifier("a")]
 
+class TestSema(unittest.TestCase):
+    pass
+
 if __name__ == "__main__":
     unittest.main()

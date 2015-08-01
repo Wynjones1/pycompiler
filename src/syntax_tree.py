@@ -64,18 +64,7 @@ class AST(object):
     def sema(self, data):
         raise NotImplementedError(type(self).__name__)
 
-    def make_tac(self, label, var):
-        """ make_tac generates the three address code
-            intermediate representation
-
-            Args:
-            label -- count of labels used previously
-
-            Returns:
-            tuple (var, label) where:
-            var   -- last temporary or variable generated
-            label -- updated label count
-        """
+    def make_tac(self, state):
         raise NotImplementedError(type(self).__name__)
 
 class Program(AST):
@@ -91,6 +80,10 @@ class Program(AST):
             node1 = s.make_graph(graph)
             add_edge(graph, node0, node1)
         return node0
+
+    def make_tac(self, state):
+        for s in self._statements:
+            s.make_tac(state)
 
     def make_tables(self, table = None):
         self._symbol_table = SymbolTable()
@@ -160,6 +153,9 @@ class Function(AST):
         data._ret_type = self._ret_type
         self._statements.sema(data)
         data._ret_type = temp
+
+    def make_tac(self, state):
+        print(self._name._strval)
         
 
 class If(AST):

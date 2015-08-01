@@ -21,3 +21,6 @@ coverage:
 	rm -Rf .coverage htmlcov
 	coverage run --branch ./test.py
 	coverage html
+
+tac:
+	./src/tac.py
