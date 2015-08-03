@@ -82,8 +82,10 @@ class Program(AST):
         return node0
 
     def make_tac(self, state):
+        out = []
         for s in self._statements:
-            s.make_tac(state)
+            out += s.make_tac(state)
+        return out
 
     def make_tables(self, table = None):
         self._symbol_table = SymbolTable()
@@ -113,6 +115,12 @@ class StatementList(AST):
     def sema(self, data):
         for s in self:
             s.sema(data)
+
+    def make_tac(self, state):
+        out = []
+        for s in self:
+            out += s.make_tac(state)
+        return out
 
 class Function(AST):
     def __init__(self, name, params, ret_type, statements):
@@ -155,7 +163,12 @@ class Function(AST):
         data._ret_type = temp
 
     def make_tac(self, state):
-        print(self._name._strval)
+        out = []
+        out.append(tac.StartFunc(self._name))
+        out += self._params.make_tac(state)
+        out += self._statements.make_tac(state)
+        out.append(tac.EndFunc(self._name))
+        return out
         
 
 class If(AST):
@@ -207,6 +220,13 @@ class Return(AST):
             type0 = self._statement.sema(data)
             resolve_type(type0, data._ret_type)
 
+    def make_tac(self, state):
+        if self._statement:
+            out = self._statement.make_tac(state)
+            out.append(tac.Return(state.last_var()))
+            return out
+        return [tac.Return(None)]
+
 def resolve_type(type0, type1, operation = None):
     return
     raise NotImplementedError()
@@ -245,6 +265,15 @@ class Op(AST):
         type0 = self._lhs.sema(data)
         type1 = self._rhs.sema(data)
         return resolve_type(type0, type1, self._optype)
+
+    def make_tac(self, state):
+        out = self._lhs.make_tac(state)
+        t0 = state.last_var()
+        out += self._rhs.make_tac(state)
+        t1 = state.last_var()
+        t2 = state.make_temp()
+        out.append(tac.Op(self._optype, t2, t0, t1))
+        return out
 
 class Import(AST):
     def __init__(self, identifier):
@@ -407,6 +436,11 @@ class Decl(AST):
             type0 = self._expr.sema(data)
             resolve_type(self._type, type0)
 
+    def make_tac(self, state):
+        if self._expr:
+            return self._expr.make_tac(state)
+        return []
+
 class ParamList(AST):
     def __init__(self):
         self._data = []
@@ -427,12 +461,23 @@ class ParamList(AST):
     def __len__(self):
         return len(self._data)
 
+    def make_tac(self, state):
+        out = []
+        for s in self:
+            out.append(tac.Param(s._type, s._var))
+            out += s.make_tac(state)
+        return out
+
 class Identifier(AST):
     def __init__(self, *identifiers):
         self._identifiers = identifiers
         self._strval      = ".".join(identifiers)
+
     def __repr__(self):
         return "Identifier<{}>".format(self._strval)
+
+    def __str__(self):
+        return self._strval
 
     def make_graph(self, graph):
         node0 = make_node(self._strval, graph)
@@ -458,6 +503,10 @@ class Identifier(AST):
         except KeyError:
             raise SemaError("Identifier '{}' cannot be found in the current scope.".format(self._strval), 0)
 
+    def make_tac(self, state):
+        state.set_var(self)
+        return []
+
 class Literal(AST):
     def __init__(self, value):
         super(Literal, self).__init__()
@@ -472,6 +521,10 @@ class Literal(AST):
 
     def sema(self, data):
         pass
+
+    def make_tac(self, state):
+        state.set_var(self)
+        return []
 
 class String(Literal):
     def __init__(self, value):
