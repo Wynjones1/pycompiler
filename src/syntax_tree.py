@@ -164,8 +164,8 @@ class Function(AST):
 
     def make_tac(self, state):
         out = []
-        out.append(tac.StartFunc(self._name))
         out += self._params.make_tac(state)
+        out.append(tac.StartFunc(self._name))
         out += self._statements.make_tac(state)
         out.append(tac.EndFunc(self._name))
         return out
@@ -196,6 +196,23 @@ class If(AST):
         type0 = self._cond.sema(data)
         resolve_type(type0, "int")
         self._statements.sema(data)
+
+    def make_tac(self, state):
+        """
+            CMP
+            JZ L0
+                S0
+                ...
+                SN
+            L0:
+        """
+        out = []
+        l0 = state.make_label()
+        out += self._cond.make_tac(state)
+        out.append(tac.JZ(l0, state.last_var()))
+        out += self._statements.make_tac(state)
+        out.append(l0)
+        return out
 
 class Return(AST):
     def __init__(self, statement):  
@@ -231,20 +248,20 @@ def resolve_type(type0, type1, operation = None):
     return
     raise NotImplementedError()
 
-class Op(AST):
+class Binop(AST):
     depth = 0
     def __init__(self, optype, lhs, rhs):
-        super(Op, self).__init__()
+        super(Binop, self).__init__()
         self._optype = optype
         self._lhs    = lhs
         self._rhs    = rhs
 
     def __str__(self):
         out =  self._optype
-        Op.depth += 1
-        out += "\n" + Op.depth * "\t" + str(self._lhs)
-        out += "\n" + Op.depth * "\t" + str(self._rhs)
-        Op.depth -= 1
+        Binop.depth += 1
+        out += "\n" + Binop.depth * "\t" + str(self._lhs)
+        out += "\n" + Binop.depth * "\t" + str(self._rhs)
+        Binop.depth -= 1
         return out
 
     def make_graph(self, graph):
@@ -273,6 +290,14 @@ class Op(AST):
         t1 = state.last_var()
         t2 = state.make_temp()
         out.append(tac.Op(self._optype, t2, t0, t1))
+        return out
+
+class Op(Binop): pass
+class Comp(Binop): pass
+class Assign(Binop):    
+    def make_tac(self, state):
+        out = self._rhs.make_tac(state)
+        out.append(tac.Assign(self._lhs, state.last_var()))
         return out
 
 class Import(AST):
@@ -324,6 +349,16 @@ class FuncCall(AST):
             type1 = statement.sema(data)
             resolve_type(type0, type1)
 
+    def make_tac(self, state):
+        out = [] 
+        temp_list = []
+        for p in self._params:
+            out += p.make_tac(state)
+            temp_list.append(state.last_var())
+        for t in temp_list:
+            out.append(tac.Param(t))
+        out.append(tac.FuncCall(self._identifier))
+        return out
 class Type(AST):
     def __init__(self, identifier):
         if isinstance(identifier, str):
@@ -338,6 +373,9 @@ class Type(AST):
 
     def make_tables(self, table):
         pass
+
+    def __str__(self):
+        return str(self._identifier)
 
 class For(AST):
     def __init__(self, decl, invariant, post, statements):
@@ -383,6 +421,36 @@ class For(AST):
             type0 = self._post.sema(data)
         self._statements.sema(data)
 
+    def make_tac(self, state):
+        out = []
+        """
+            INIT
+            JP L1
+            L0:
+                S0
+                ...
+                SN
+                POST
+            L1:
+                CMP
+                JNZ L0
+        """
+        l0 = state.make_label()
+        l1 = state.make_label()
+        out = []
+        if self._decl:
+            out += self._decl.make_tac(state)
+        out.append(tac.JP(l1))
+        out.append(l0)
+        out += self._statements.make_tac(state)
+        if self._post:
+            out += self._post.make_tac(state)
+        out.append(l1)
+        if self._invariant:
+            out += self._invariant.make_tac(state)
+        out.append(tac.JNZ(l0, state.last_var()))
+        return out
+
 class While(AST):
     def __init__(self, cond, statements):
         self._cond       = cond
@@ -407,6 +475,28 @@ class While(AST):
         type0 = self._cond.sema(data)
         resolve_type(type0, "int")
         self._statements.sema(data)
+
+    def make_tac(self, state):
+        """
+            JP L1
+            L0:
+                S0
+                ...
+                SN
+            L1:
+                CMP
+                JNZ L0
+        """
+        out = []
+        l0 = state.make_label()
+        l1 = state.make_label()
+        out.append(tac.JP(l1))
+        out.append(l0)
+        out += self._statements.make_tac(state)
+        out.append(l1)
+        out += self._cond.make_tac(state)
+        out.append(tac.JNZ(l0, state.last_var()))
+        return out
 
 class Decl(AST):
     def __init__(self, type, var, expr):
@@ -438,7 +528,9 @@ class Decl(AST):
 
     def make_tac(self, state):
         if self._expr:
-            return self._expr.make_tac(state)
+            out = self._expr.make_tac(state)
+            out.append(tac.Assign(self._var, state.last_var()))
+            return out
         return []
 
 class ParamList(AST):
@@ -464,7 +556,7 @@ class ParamList(AST):
     def make_tac(self, state):
         out = []
         for s in self:
-            out.append(tac.Param(s._type, s._var))
+            out.append(tac.Argument(s._type, s._var))
             out += s.make_tac(state)
         return out
 
@@ -512,6 +604,9 @@ class Literal(AST):
         super(Literal, self).__init__()
         self._value = value
 
+    def __str__(self):
+        return self._value
+
     def make_graph(self, graph):
         node0 = make_node(self._value, graph)
         return node0
@@ -529,6 +624,8 @@ class Literal(AST):
 class String(Literal):
     def __init__(self, value):
         super(String, self).__init__(value)
+    def __str__(self):
+        return '"{}"'.format(self._value)
 
 class Number(Literal):
     def __init__(self, value):

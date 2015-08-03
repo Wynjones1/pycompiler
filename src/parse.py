@@ -264,11 +264,19 @@ def get_prec(op):
     return prec_table[op._value]
 
 def make_op(list_in):
-    if list_in[-1] in (Op, Comp, AssignBase):
-        optype = list_in.pop()
+    optype = None
+    if isinstance(list_in[-1] , Op):
+        optype = ast.Op 
+    elif isinstance(list_in[-1] , Comp):
+        optype = ast.Comp
+    elif isinstance(list_in[-1] , AssignBase):
+        optype = ast.Assign
+
+    if optype:
+        op_value = list_in.pop()
         rhs = make_op(list_in)
         lhs = make_op(list_in)
-        return ast.Op(optype.get_value(), lhs, rhs)
+        return optype(op_value.get_value(), lhs, rhs)
     else:
         return list_in.pop()
 

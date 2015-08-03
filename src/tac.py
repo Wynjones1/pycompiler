@@ -9,6 +9,13 @@ class TempVar(object):
     def __str__(self):
         return "_t{}".format(self._value)
 
+class Label(object):
+    def __init__(self, value):
+        self._value = value
+
+    def __str__(self):
+        return "L{}:".format(self._value)
+
 class TacState(object):
     def __init__(self):
         self._label_count = 0
@@ -31,20 +38,33 @@ class TacState(object):
     def make_label(self):
         out = self._label_count
         self._label_count += 1
-        return out
+        return Label(out)
         
 class TAC:
     def __str__(self):
-        raise NotImplementedError()
+        raise NotImplementedError("{}".format(self.__class__.__name__))
 
-class Param(TAC):
+class Argument(TAC):
     def __init__(self, type, identifier):
         self._type = type
         self._identifier = identifier
 
     def __str__(self):
-        return "param {} {}".format(self._type, self._identifier)
+        return "arg {} {}".format(self._type, self._identifier)
 
+class FuncCall(TAC):
+    def __init__(self, identifier):
+        self._identifier = identifier
+
+    def __str__(self):
+        return "CALL {}".format(self._identifier)
+
+class Param(TAC):
+    def __init__(self, value):
+        self._value = value
+
+    def __str__(self):
+        return "param {}".format(self._value)
 class StartFunc(TAC):
     def __init__(self, identifier):
         self._identifier = identifier
@@ -58,7 +78,13 @@ class EndFunc(TAC):
     def __str__(self):
         return "endfunc {}".format(self._identifier)
 
-class Assign(TAC): pass
+class Assign(TAC):
+    def __init__(self, identifier, var):
+        self._identifier = identifier
+        self._var        = var
+
+    def __str__(self):
+        return ":= {} {}".format(self._identifier, self._var)
 
 class Op(TAC):
     def __init__(self, op, assign, lhs, rhs):
@@ -77,6 +103,29 @@ class Return(TAC):
 
     def __str__(self):
         return "return {}".format(self._value if self._value else "")
+
+class JP(TAC):
+    def __init__(self, label):
+        self._label = label
+
+    def __str__(self):
+        return "JP {}".format(self._label)
+
+class JNZ(TAC):
+    def __init__(self, label, var):
+        self._label = label
+        self._var   = var
+
+    def __str__(self):
+        return "JNZ {} {}".format(self._label, self._var)
+
+class JZ(TAC):
+    def __init__(self, label, var):
+        self._label = label
+        self._var   = var
+
+    def __str__(self):
+        return "JZ {} {}".format(self._label, self._var)
 
 if __name__ == "__main__":
     test = """

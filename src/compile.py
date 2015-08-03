@@ -33,7 +33,10 @@ def main(*args, **kwargs):
         raise
     t = program.make_tac(tac.TacState())
     for x in t:
-        print(x)
+        if isinstance(x, (tac.Label, tac.StartFunc, tac.EndFunc)):
+            print(x)
+        else:
+            print("\t{}".format(x))
     graph = program.output_graph("out.png")
 
 if __name__ == "__main__":
