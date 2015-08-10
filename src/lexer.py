@@ -169,14 +169,14 @@ def set_line_pos(value, line, pos):
 
 
 def tokenise(data):
-    pos    = 0
-    line   = 0
+    pos = 0
+    line = 0
     string = data
     while string:
         for pattern, token_type in token_dict:
             match = pattern.match(string)
             if match:
-                value  = match.group(0)
+                value = match.group(0)
                 string = string[len(value):]
                 if token_type not in (Whitespace, Comment):
                     yield token_type(value, line, pos, data)

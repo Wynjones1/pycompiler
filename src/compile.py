@@ -37,6 +37,8 @@ def main(*args, **kwargs):
             print(x)
         else:
             print("\t{}".format(x))
+        if isinstance(x, tac.EndFunc):
+            print("")
     graph = program.output_graph("out.png")
 
 if __name__ == "__main__":

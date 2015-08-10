@@ -95,7 +95,7 @@ class TestParser(unittest.TestCase):
                 "1 * 2 + 3",
                 "1 + 2 * 3",
                 "a < 10"]
-        self._test_generic(data, parse_expression , ast.Op)
+        self._test_generic(data, parse_expression , ast.Binop)
 
     def test_for(self):
         data = ["for(int i := 0; i < 10; i += 1){}",

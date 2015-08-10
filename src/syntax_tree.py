@@ -297,7 +297,10 @@ class Comp(Binop): pass
 class Assign(Binop):    
     def make_tac(self, state):
         out = self._rhs.make_tac(state)
-        out.append(tac.Assign(self._lhs, state.last_var()))
+        rhs_temp = state.last_var()
+        lhs_temp = state.make_temp()
+        out += self._lhs.make_tac(state)
+        out.append(tac.Assign(self._lhs, rhs_temp))
         return out
 
 class Import(AST):
@@ -534,8 +537,8 @@ class Decl(AST):
         return []
 
 class ParamList(AST):
-    def __init__(self):
-        self._data = []
+    def __init__(self, *data):
+        self._data = data[:]
 
     def append(self, data):
         self._data.append(data)

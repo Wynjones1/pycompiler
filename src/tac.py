@@ -65,12 +65,14 @@ class Param(TAC):
 
     def __str__(self):
         return "param {}".format(self._value)
+
 class StartFunc(TAC):
     def __init__(self, identifier):
         self._identifier = identifier
 
     def __str__(self):
         return "startfunc {}".format(self._identifier)
+
 class EndFunc(TAC):
     def __init__(self, identifier):
         self._identifier = identifier
@@ -126,6 +128,33 @@ class JZ(TAC):
 
     def __str__(self):
         return "JZ {} {}".format(self._label, self._var)
+
+class Load(TAC):
+    def __init__(self, dest, source):
+        self._dest = dest
+        self._source = source
+
+    def __str__(self):
+        return "Load {} {}".format(self._dest, self._source)
+
+class Store(TAC):
+    def __init__(self, dest, source):
+        self._dest = dest
+        self._source = source
+
+    def __str__(self):
+        return "Store {} {}".format(self._dest, self._source)
+
+def make_tac(input):
+    try:
+        prog = parse(input)
+        prog.make_tables()
+        prog.sema()
+        return prog.make_tac(TacState())
+    except ast.SemaError as e:
+        raise
+    except KeyError as e:
+        raise
 
 if __name__ == "__main__":
     test = """

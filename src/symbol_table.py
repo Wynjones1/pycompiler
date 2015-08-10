@@ -1,5 +1,6 @@
 #!/usr/bin/env python2.7
 import syntax_tree as ast
+from   collections import OrderedDict
 
 _global_symbol_table = None
 
@@ -13,7 +14,7 @@ class SymbolTable(object):
         global _global_symbol_table
         init_global_symbol_table()
 
-        self._data   = {}
+        self._data   = OrderedDict()
         self._parent = parent if parent else _global_symbol_table
 
 
@@ -45,8 +46,10 @@ class SymbolTable(object):
 
 
 def dummy_function(name):
+    int_type = ast.Type(ast.Identifier("int"))
+    param_0  = ast.Decl(int_type, ast.Identifier("ast"), None)
     return ast.Function(ast.Identifier(name),
-                        ast.ParamList(),
+                        ast.ParamList(param_0),
                         ast.Type(ast.Identifier("void")),
                         ast.StatementList())
 
