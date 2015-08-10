@@ -354,12 +354,9 @@ class FuncCall(AST):
 
     def make_tac(self, state):
         out = [] 
-        temp_list = []
         for p in self._params:
             out += p.make_tac(state)
-            temp_list.append(state.last_var())
-        for t in temp_list:
-            out.append(tac.Param(t))
+            out.append(tac.Param(state.last_var()))
         out.append(tac.FuncCall(self._identifier))
         return out
 class Type(AST):
@@ -538,7 +535,7 @@ class Decl(AST):
 
 class ParamList(AST):
     def __init__(self, *data):
-        self._data = data[:]
+        self._data = list(data)
 
     def append(self, data):
         self._data.append(data)
