@@ -25,8 +25,27 @@ class CodeGenState(object):
         """
         return "eax"
 
+class StackFrame(object):
+    def __init__(self, parent):
+        #contains, (type, name, size, offset)
+        self.parent = parent
+        self.arguments = []
+        #contains, (type, name, size, offset)
+        self.params = []
+        self.size   = 0
+
+    def add_argument(self, type, name):
+        self.argument.append((type, name, offset))
+        self.size += 4
+
+    def add_param(self, type, name):
+        self.argument.append((type, name, offset))
+        self.size += 4
+
 def gen_StartFunc(x, state):
     state._symbol_table = x._symbol_table
+    print("{} : {}".format(x, state._symbol_table._children))
+    print("{}".format(state._symbol_table._children[0]))
     state.out("{}:", x._identifier)
     state.outl("push ebp")
     state.outl("mov ebp, esp")
@@ -169,23 +188,28 @@ def gen_asm(tac):
 
 if __name__ == "__main__":
     source = """\
-    function f0(int a, int b)
+    function f0(int f0_param_0, int f0_param_1)
     {
+        int f0_scope_0
     }
 
     function main()
     {
         int b := 1234
+        int a123
         print(b)
         f0(b + 1, b + 2)
     }
     """
 
+    print(source)
+    print("-" * 80)
     tac = make_tac(source)
     for x in tac:
         print(x)
+    print("-" * 80)
     out = gen_asm(tac)
-    print("----")
-    for lineno, line in enumerate(out.split("\n")):
-        sys.stdout.write("{:02d}:{}\n".format(lineno + 1, line))
-    open("out.s", "w").write(out)
+    #print("----")
+    #for lineno, line in enumerate(out.split("\n")):
+    #    sys.stdout.write("{:02d}:{}\n".format(lineno + 1, line))
+    #open("out.s", "w").write(out)

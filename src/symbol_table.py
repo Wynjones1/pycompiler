@@ -51,7 +51,7 @@ class SymbolTable(object):
 class ParamTable(SymbolTable):
     pass
 
-class PsudoTable(SymbolTable):
+class SubTable(SymbolTable):
     pass
 
 

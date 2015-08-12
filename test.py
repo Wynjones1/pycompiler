@@ -226,6 +226,14 @@ class TestSymbolTable(unittest.TestCase):
         with self.assertRaises(KeyError):
             table[ast.Identifier("a")]
 
+    def test_symbol_table_children(self):
+        table0 = SymbolTable()
+        table1 = SymbolTable(table0)
+        table2 = SymbolTable(table0)
+
+        self.assertIs(table0._children[0], table1)
+        self.assertIs(table0._children[1], table2)
+
 class TestSema(unittest.TestCase):
     pass
 

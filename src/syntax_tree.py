@@ -105,8 +105,9 @@ class StatementList(AST):
         self._statements = statements
 
     def make_tables(self, table):
+        self._symbol_table = table
         for s in self._statements:
-            s.make_tables(table)
+            s.make_tables(self._symbol_table)
 
     def __iter__(self):
         return iter(self._statements)
@@ -152,8 +153,10 @@ class Function(AST):
     def make_tables(self, table):
         table[self._name] = self
         self._symbol_table = SymbolTable(table)
-        self._params.make_tables(table)
-        self._statements.make_tables(table)
+        self._name.make_tables(self._symbol_table)
+        self._params.make_tables(self._symbol_table)
+        self._ret_type.make_tables(self._symbol_table)
+        self._statements.make_tables(self._symbol_table)
 
     @semafunc
     def sema(self, data):
@@ -187,9 +190,9 @@ class If(AST):
         return node0
 
     def make_tables(self, table):
-        self._symbol_table = PsudoTable(table)
+        self._symbol_table = table
         self._cond.make_tables(table)
-        self._statements.make_tables(self._symbol_table)
+        self._statements.make_tables(SubTable(self._symbol_table))
 
     @semafunc
     def sema(self, data):
@@ -276,6 +279,8 @@ class Binop(AST):
         self._symbol_table = table
         self._lhs.make_tables(table)
         self._rhs.make_tables(table)
+        #Check if this should be a string
+        #self._optype.make_tables(table)
 
     @semafunc
     def sema(self, data):
@@ -403,14 +408,14 @@ class For(AST):
         return node0
 
     def make_tables(self, table):
-        self._symbol_table = PsudoTable(table)
+        self._symbol_table = SubTable(table)
         if self._decl:
             self._decl.make_tables(self._symbol_table)
         if self._invariant:
             self._invariant.make_tables(self._symbol_table)
         if self._post:
             self._post.make_tables(self._symbol_table)
-        self._statements.make_tables(self._symbol_table)
+        self._statements.make_tables(SubTable(self._symbol_table))
 
     @semafunc
     def sema(self, data):
@@ -468,9 +473,9 @@ class While(AST):
         return node0
 
     def make_tables(self, table):
-        self._symbol_table = PsudoTable(table)
-        self._cond.make_tables(table)
-        self._statements.make_tables(self._symbol_table)
+        self._symbol_table = table
+        self._cond.make_tables(self._symbol_table)
+        self._statements.make_tables(SubTable(self._symbol_table))
 
     @semafunc
     def sema(self, data):
@@ -520,6 +525,9 @@ class Decl(AST):
 
     def make_tables(self, table):
         self._symbol_table = table
+        self._var.make_tables(table)
+        if self._expr:
+            self._expr.make_tables(table)
         table[self._var] = self._type
 
     @semafunc
