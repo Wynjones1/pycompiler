@@ -67,8 +67,9 @@ class Param(TAC):
         return "param {}".format(self._value)
 
 class StartFunc(TAC):
-    def __init__(self, identifier):
+    def __init__(self, identifier, symbol_table):
         self._identifier = identifier
+        self._symbol_table = symbol_table
 
     def __str__(self):
         return "startfunc {}".format(self._identifier)

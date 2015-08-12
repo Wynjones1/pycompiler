@@ -5,6 +5,7 @@ class CodeGenState(object):
     def __init__(self):
         self._output = []
         self._param_count = 0
+        self._symbol_table = None
 
     def outl(self, line, *args, **kwargs):
         self.out("\t" + line, *args, **kwargs)
@@ -16,6 +17,7 @@ class CodeGenState(object):
         pass
 
     def get_offset(self, identifier):
+        offset = 0
         return - 4
 
     def get_register(self, temp):
@@ -24,6 +26,7 @@ class CodeGenState(object):
         return "eax"
 
 def gen_StartFunc(x, state):
+    state._symbol_table = x._symbol_table
     state.out("{}:", x._identifier)
     state.outl("push ebp")
     state.outl("mov ebp, esp")
@@ -36,6 +39,10 @@ def gen_FuncCall(x, state):
 def gen_Param(x, state):
     if isinstance(x._value, ast.Literal):
         state.outl("push {}", x._value)
+    elif isinstance(x._value, ast.Identifier):
+        offset = state.get_offset(x._value)
+        state.outl("mov eax, [esp + {}]", offset)
+        state.outl("push eax")
     else:
         state.outl("push {}", state.get_register(x._value))
     state._param_count += 1
@@ -168,13 +175,8 @@ if __name__ == "__main__":
 
     function main()
     {
-        int b := 10
-        b := b * 10
-        print(0)
-        print(10)
-        print(123)
-        print(1234567)
-        print(4294967295)
+        int b := 1234
+        print(b)
         f0(b + 1, b + 2)
     }
     """

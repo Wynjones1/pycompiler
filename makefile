@@ -4,7 +4,7 @@ all:
 	nasm -g -f elf -l out.lst out.s
 	ld -melf_i386 -o out out.o
 
-.PHONY: asm
+.PHONY: asm test
 asm:
 	nasm -g -f elf test.s
 	ld -melf_i386 -o test test.o

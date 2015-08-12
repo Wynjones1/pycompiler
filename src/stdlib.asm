@@ -11,6 +11,11 @@ print:
         mov ecx, 0
         sub esp, BUFSIZE; reserve space for the integer
 
+        mov esi, BUFSIZE - 1
+        sub esi, ecx
+        mov byte [ebp - 1], ASCII_NEWLINE
+        add ecx, 1         ; adjust length
+
 .loop:
         ; push character on the stack
         ; store length in ecx
@@ -27,10 +32,6 @@ print:
         cmp eax, 0       ; see if we are done
         jnz .loop
 
-        mov esi, BUFSIZE - 1
-        sub esi, ecx
-        mov byte [esp + esi], ASCII_NEWLINE
-        add ecx, 1         ; adjust length
 
         mov eax, 4   ; write syscall
         mov ebx, 0   ; stdout fd

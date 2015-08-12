@@ -14,8 +14,12 @@ class SymbolTable(object):
         global _global_symbol_table
         init_global_symbol_table()
 
-        self._data   = OrderedDict()
-        self._parent = parent if parent else _global_symbol_table
+        self._data     = OrderedDict()
+        if parent:
+            parent._children.append(self)
+
+        self._parent   = parent if parent else _global_symbol_table
+        self._children = []
 
 
     def __getitem__(self, key):
@@ -43,6 +47,12 @@ class SymbolTable(object):
             out = str(self._parent)
         out += str(self._data) + "\n"
         return out
+
+class ParamTable(SymbolTable):
+    pass
+
+class PsudoTable(SymbolTable):
+    pass
 
 
 def dummy_function(name):

@@ -164,8 +164,8 @@ class Function(AST):
 
     def make_tac(self, state):
         out = []
+        out.append(tac.StartFunc(self._name, self._symbol_table))
         out += self._params.make_tac(state)
-        out.append(tac.StartFunc(self._name))
         out += self._statements.make_tac(state)
         out.append(tac.EndFunc(self._name))
         return out
@@ -187,7 +187,7 @@ class If(AST):
         return node0
 
     def make_tables(self, table):
-        self._symbol_table = SymbolTable(table)
+        self._symbol_table = PsudoTable(table)
         self._cond.make_tables(table)
         self._statements.make_tables(self._symbol_table)
 
@@ -361,6 +361,7 @@ class FuncCall(AST):
         return out
 class Type(AST):
     def __init__(self, identifier):
+        super(Type, self).__init__()
         if isinstance(identifier, str):
             self._identifier = Identifier(identifier)
         elif isinstance(identifier, Identifier):
@@ -372,7 +373,8 @@ class Type(AST):
         return self._identifier.make_graph(graph)
 
     def make_tables(self, table):
-        pass
+        self._symbol_table = table
+        self._identifier.make_tables(table)
 
     def __str__(self):
         return str(self._identifier)
@@ -401,7 +403,7 @@ class For(AST):
         return node0
 
     def make_tables(self, table):
-        self._symbol_table = SymbolTable(table)
+        self._symbol_table = PsudoTable(table)
         if self._decl:
             self._decl.make_tables(self._symbol_table)
         if self._invariant:
@@ -466,7 +468,7 @@ class While(AST):
         return node0
 
     def make_tables(self, table):
-        self._symbol_table = SymbolTable(table)
+        self._symbol_table = PsudoTable(table)
         self._cond.make_tables(table)
         self._statements.make_tables(self._symbol_table)
 
@@ -547,8 +549,9 @@ class ParamList(AST):
         self._data[key] = value
 
     def make_tables(self, table):
+        self._symbol_table = ParamTable(table)
         for i in self._data:
-            i.make_tables(table)
+            i.make_tables(self._symbol_table)
 
     def __len__(self):
         return len(self._data)
@@ -562,6 +565,7 @@ class ParamList(AST):
 
 class Identifier(AST):
     def __init__(self, *identifiers):
+        super(Identifier, self).__init__()
         self._identifiers = identifiers
         self._strval      = ".".join(identifiers)
 
