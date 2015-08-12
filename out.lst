@@ -25,7 +25,7 @@
     25 0000001E 8B4508                  	mov eax, [ebp + 8]
     26 00000021 50                      	push eax
     27                                  ;------------------------------------| CALL print
-    28 00000022 E841000000              	call print
+    28 00000022 E848000000              	call print
     29 00000027 83C404                  	add esp, 4
     30                                  ;------------------------------------| endfunc f0
     31                                  .end:
@@ -37,8 +37,8 @@
     37 0000002F 55                      	push ebp
     38 00000030 89E5                    	mov ebp, esp
     39 00000032 83EC04                  	sub esp, 4
-    40                                  ;------------------------------------| := b 100
-    41 00000035 C745FC64000000          	mov dword [ebp + -4], 100
+    40                                  ;------------------------------------| := b 2
+    41 00000035 C745FC02000000          	mov dword [ebp + -4], 2
     42                                  ;------------------------------------| + _t0 b 21
     43 0000003C 8B45FC                  	mov eax, [ebp + -4]
     44 0000003F 53                      	push ebx
@@ -58,58 +58,63 @@
     58 00000054 8B5DFC                  	mov ebx, [ebp + -4]
     59 00000057 F7E3                    	mul ebx
     60 00000059 5B                      	pop ebx
-    61                                  ;------------------------------------| param _t2
-    62 0000005A 50                      	push eax
-    63                                  ;------------------------------------| CALL f0
-    64 0000005B E8B8FFFFFF              	call f0
-    65 00000060 83C408                  	add esp, 8
-    66                                  ;------------------------------------| endfunc main
-    67                                  .end:
-    68 00000063 83C404                  	add esp, 4
-    69 00000066 5D                      	pop ebp
-    70 00000067 C3                      	ret
-    71                                  	%include "src/stdlib.asm"
-    72                              <1> %define ASCII_A       0x41
-    73                              <1> %define ASCII_0       0x30
-    74                              <1> %define ASCII_NEWLINE 0xa
-    75                              <1> %define BUFSIZE 10
-    76                              <1> ; print the integer pointed to by the first argument
-    77                              <1> print:
-    78 00000068 55                  <1>     push ebp
-    79 00000069 89E5                <1>         mov ebp, esp
-    80 0000006B 8B4508              <1>         mov eax, [ebp + 8]
-    81 0000006E BB0A000000          <1>         mov ebx, 10
-    82 00000073 B900000000          <1>         mov ecx, 0
-    83 00000078 83EC0A              <1>         sub esp, BUFSIZE; reserve space for the integer
-    84                              <1> 
-    85 0000007B BE09000000          <1>         mov esi, BUFSIZE - 1
-    86 00000080 29CE                <1>         sub esi, ecx
-    87 00000082 C645FF0A            <1>         mov byte [ebp - 1], ASCII_NEWLINE
-    88 00000086 83C101              <1>         add ecx, 1         ; adjust length
+    61                                  ;------------------------------------| * _t3 _t2 b
+    62 0000005A 53                      	push ebx
+    63 0000005B 8B5DFC                  	mov ebx, [ebp + -4]
+    64 0000005E F7E3                    	mul ebx
+    65 00000060 5B                      	pop ebx
+    66                                  ;------------------------------------| param _t3
+    67 00000061 50                      	push eax
+    68                                  ;------------------------------------| CALL f0
+    69 00000062 E8B1FFFFFF              	call f0
+    70 00000067 83C408                  	add esp, 8
+    71                                  ;------------------------------------| endfunc main
+    72                                  .end:
+    73 0000006A 83C404                  	add esp, 4
+    74 0000006D 5D                      	pop ebp
+    75 0000006E C3                      	ret
+    76                                  	%include "src/stdlib.asm"
+    77                              <1> %define ASCII_A       0x41
+    78                              <1> %define ASCII_0       0x30
+    79                              <1> %define ASCII_NEWLINE 0xa
+    80                              <1> %define BUFSIZE 10
+    81                              <1> ; print the integer pointed to by the first argument
+    82                              <1> print:
+    83 0000006F 55                  <1>     push ebp
+    84 00000070 89E5                <1>         mov ebp, esp
+    85 00000072 8B4508              <1>         mov eax, [ebp + 8]
+    86 00000075 BB0A000000          <1>         mov ebx, 10
+    87 0000007A B900000000          <1>         mov ecx, 0
+    88 0000007F 83EC0A              <1>         sub esp, BUFSIZE; reserve space for the integer
     89                              <1> 
-    90                              <1> .loop:
-    91                              <1>         ; push character on the stack
-    92                              <1>         ; store length in ecx
-    93                              <1> 
-    94 00000089 BA00000000          <1>         mov edx, 0       ; zero upper bits of EDX:EAX
-    95 0000008E F7F3                <1>         div ebx          ; divide by 10
-    96 00000090 83C230              <1>         add edx, ASCII_0 ; adjust to ascii
-    97                              <1> 
-    98 00000093 BE09000000          <1>         mov esi, BUFSIZE - 1
-    99 00000098 29CE                <1>         sub esi, ecx
-   100 0000009A 881434              <1>         mov [esp + esi], dl; store in the buffer
-   101                              <1> 
-   102 0000009D 83C101              <1>         add ecx, 1       ; adjust length
-   103 000000A0 83F800              <1>         cmp eax, 0       ; see if we are done
-   104 000000A3 75E4                <1>         jnz .loop
-   105                              <1> 
+    90 00000082 BE09000000          <1>         mov esi, BUFSIZE - 1
+    91 00000087 29CE                <1>         sub esi, ecx
+    92 00000089 C645FF0A            <1>         mov byte [ebp - 1], ASCII_NEWLINE
+    93 0000008D 83C101              <1>         add ecx, 1         ; adjust length
+    94                              <1> 
+    95                              <1> .loop:
+    96                              <1>         ; push character on the stack
+    97                              <1>         ; store length in ecx
+    98                              <1> 
+    99 00000090 BA00000000          <1>         mov edx, 0       ; zero upper bits of EDX:EAX
+   100 00000095 F7F3                <1>         div ebx          ; divide by 10
+   101 00000097 83C230              <1>         add edx, ASCII_0 ; adjust to ascii
+   102                              <1> 
+   103 0000009A BE09000000          <1>         mov esi, BUFSIZE - 1
+   104 0000009F 29CE                <1>         sub esi, ecx
+   105 000000A1 881434              <1>         mov [esp + esi], dl; store in the buffer
    106                              <1> 
-   107 000000A5 B804000000          <1>         mov eax, 4   ; write syscall
-   108 000000AA BB00000000          <1>         mov ebx, 0   ; stdout fd
-   109 000000AF 89CA                <1>         mov edx, ecx ; length of string
-   110 000000B1 89E9                <1>         mov ecx, ebp
-   111 000000B3 29D1                <1>         sub ecx, edx ; location of output string
-   112 000000B5 CD80                <1>         int 0x80
-   113 000000B7 89EC                <1>         mov esp, ebp
-   114 000000B9 5D                  <1>     pop ebp
-   115 000000BA C3                  <1>     ret
+   107 000000A4 83C101              <1>         add ecx, 1       ; adjust length
+   108 000000A7 83F800              <1>         cmp eax, 0       ; see if we are done
+   109 000000AA 75E4                <1>         jnz .loop
+   110                              <1> 
+   111                              <1> 
+   112 000000AC B804000000          <1>         mov eax, 4   ; write syscall
+   113 000000B1 BB00000000          <1>         mov ebx, 0   ; stdout fd
+   114 000000B6 89CA                <1>         mov edx, ecx ; length of string
+   115 000000B8 89E9                <1>         mov ecx, ebp
+   116 000000BA 29D1                <1>         sub ecx, edx ; location of output string
+   117 000000BC CD80                <1>         int 0x80
+   118 000000BE 89EC                <1>         mov esp, ebp
+   119 000000C0 5D                  <1>     pop ebp
+   120 000000C1 C3                  <1>     ret

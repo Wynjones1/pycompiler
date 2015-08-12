@@ -226,8 +226,8 @@ if __name__ == "__main__":
 
     function main()
     {
-        int b := 100
-        f0(b * b * b, b + 21)
+        int b := 2
+        f0((b + 1) * (b + 2), b + 21)
     }
     """
 
