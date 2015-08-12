@@ -3,29 +3,29 @@ import re
 
 class Token(object):
     def __init__(self, value, line, pos, data):
-        self._value = value
-        self._line  = line
-        self._pos   = pos
-        self._data  = data
+        self.value = value
+        self.line  = line
+        self.pos   = pos
+        self.data  = data
 
     def get_value(self):
-        return self._value
+        return self.value
 
     def get_pos(self):
         """ return the position in the line of the token"""
-        return self._pos
+        return self.pos
 
     def get_line(self):
         """ return the line the token is on """
-        return self._line
+        return self.line
 
     def __repr__(self):
-        return "{}<{}>".format(type(self).__name__, repr(self._value))
+        return "{}<{}>".format(type(self).__name__, repr(self.value))
 
     def __eq__(self, other):
         if type(other) == type:
             return isinstance(self, other)
-        return self._value == other
+        return self.value == other
 
     def __ne__(self, other):
         return not self == other
@@ -34,12 +34,12 @@ class Token(object):
         assert context_above >= 0 and context_below >= 0
         out = ""
         lineno = self.get_line()
-        lines = self._data.split("\n")
+        lines = self.data.split("\n")
         pos  = self.get_pos()
         for line in lines[max(0, lineno - context_above):lineno]:
             out += line + "\n"
         out += lines[lineno] + "\n"
-        out += " " * pos + "^" + "~" * (len(self._value) - 1) + "\n"
+        out += " " * pos + "^" + "~" * (len(self.value) - 1) + "\n"
         for line in lines[lineno + 1:lineno + context_below + 1]:
             out += line + "\n"
         return out

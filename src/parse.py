@@ -8,13 +8,13 @@ class Parser(object):
     def __init__(self, tokens):
         if type(tokens) == str:
             tokens = [x for x in tokenise(tokens)]
-        self._tokens = tokens
-        self._pos    = -1
+        self.tokens = tokens
+        self.pos    = -1
 
     def next(self):
         try:
-            self._pos += 1
-            out = self._tokens[self._pos]
+            self.pos += 1
+            out = self.tokens[self.pos]
             return out
         except IndexError:
             return None
@@ -22,15 +22,15 @@ class Parser(object):
     def peek(self, *test):
         try:
             if len(test):
-                return any( self._tokens[self._pos + 1] == x for x in test)
+                return any( self.tokens[self.pos + 1] == x for x in test)
             else:
-                return self._tokens[self._pos + 1]
+                return self.tokens[self.pos + 1]
         except IndexError:
             return None
 
     def cur(self):
         try:
-            return self._tokens[self._pos]
+            return self.tokens[self.pos]
         except IndexError:
             raise InvalidParse()
 
@@ -44,20 +44,20 @@ class Parser(object):
         return self.expect(test, message)
 
     def get_pos(self):
-        return self._pos
+        return self.pos
 
     def set_pos(self, pos):
-        self._pos = pos
+        self.pos = pos
 
     def done(self):
-        return self._pos + 1 == len(self._tokens)
+        return self.pos + 1 == len(self.tokens)
 
     def consume(self, test):
         while self.peek(test):
             self.next()
 
     def __getitem__(self, index):
-        return self._tokens[index]
+        return self.tokens[index]
 
 indent  = 0
 verbose = 0
@@ -75,13 +75,13 @@ def parsefunc(func):
             indent -= 1
             if verbose:
                 print("\t" * indent + "OK   : " + func.__name__)
-            retval._start_token = start_token
+            retval.start_token = start_token
             pos = parser.get_pos()
-            retval._end_token   = parser[pos] if pos >= 1 else None
+            retval.end_token   = parser[pos] if pos >= 1 else None
             return retval
         except InvalidParse as e:
-            if e._function == None:
-                e._function = func
+            if e.function == None:
+                e.function = func
             parser.set_pos(pos)
             indent -= 1
             if verbose:
@@ -92,7 +92,7 @@ def parsefunc(func):
 class InvalidParse(Exception):
     def __init__(self, *args, **kwargs):
         super(Exception, self).__init__(*args, **kwargs)
-        self._function = None
+        self.function = None
 
 class ParseError(RuntimeError):
     pass
@@ -261,7 +261,7 @@ def get_prec(op):
         "/"  : 4,
         "*"  : 5,
     }
-    return prec_table[op._value]
+    return prec_table[op.value]
 
 def make_op(list_in):
     optype = None

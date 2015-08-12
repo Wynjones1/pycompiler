@@ -14,38 +14,38 @@ class SymbolTable(object):
         global _global_symbol_table
         init_global_symbol_table()
 
-        self._data     = OrderedDict()
+        self.data     = OrderedDict()
         if parent:
-            parent._children.append(self)
+            parent.children.append(self)
 
-        self._parent   = parent if parent else _global_symbol_table
-        self._children = []
+        self.parent   = parent if parent else _global_symbol_table
+        self.children = []
 
 
     def __getitem__(self, key):
         try:
-            return self._data[key]
+            return self.data[key]
         except KeyError as e:
-            if self._parent:
-                return self._parent[key]
+            if self.parent:
+                return self.parent[key]
             raise
 
     def __setitem__(self, key, value):
         assert(isinstance(value, (ast.Function, ast.Type)))
         assert(isinstance(key, ast.Identifier))
-        if value in self._data:
+        if value in self.data:
             raise InvalidParse("identifier {} already defined in this scope".format(value))
-        self._data[key] = value
+        self.data[key] = value
 
     def set_parent(self, parent):
         assert isinstance(parent, SymbolTable)
-        self._parent = parent
+        self.parent = parent
 
     def __str__(self):
         out = ""
-        if self._parent:
-            out = str(self._parent)
-        out += str(self._data) + "\n"
+        if self.parent:
+            out = str(self.parent)
+        out += str(self.data) + "\n"
         return out
 
 class ParamTable(SymbolTable):
@@ -68,5 +68,5 @@ def init_global_symbol_table():
     if not _global_symbol_table:
         _global_symbol_table = True
         _global_symbol_table = SymbolTable()
-        _global_symbol_table._parent = None
+        _global_symbol_table.parent = None
         _global_symbol_table[ast.Identifier("print")] = dummy_function("print")

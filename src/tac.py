@@ -4,23 +4,23 @@ from parse import *
 
 class TempVar(object):
     def __init__(self, value):
-        self._value = value
+        self.value = value
 
     def __str__(self):
-        return "_t{}".format(self._value)
+        return "_t{}".format(self.value)
 
 class Label(object):
     def __init__(self, value):
-        self._value = value
+        self.value = value
 
     def __str__(self):
-        return "L{}:".format(self._value)
+        return "L{}:".format(self.value)
 
 class TacState(object):
     def __init__(self):
-        self._label_count = 0
+        self.label_count = 0
         self._last_var    = None
-        self._temp_count  = 0
+        self.temp_count  = 0
 
     def last_var(self):
         assert self._last_var != None
@@ -30,14 +30,14 @@ class TacState(object):
         self._last_var = var
 
     def make_temp(self):
-        out = self._temp_count
-        self._temp_count += 1
+        out = self.temp_count
+        self.temp_count += 1
         self._last_var = TempVar(out)
         return self._last_var
 
     def make_label(self):
-        out = self._label_count
-        self._label_count += 1
+        out = self.label_count
+        self.label_count += 1
         return Label(out)
         
 class TAC:
@@ -46,105 +46,105 @@ class TAC:
 
 class Argument(TAC):
     def __init__(self, type, identifier):
-        self._type = type
-        self._identifier = identifier
+        self.type = type
+        self.identifier = identifier
 
     def __str__(self):
-        return "arg {} {}".format(self._type, self._identifier)
+        return "arg {} {}".format(self.type, self.identifier)
 
 class FuncCall(TAC):
     def __init__(self, identifier):
-        self._identifier = identifier
+        self.identifier = identifier
 
     def __str__(self):
-        return "CALL {}".format(self._identifier)
+        return "CALL {}".format(self.identifier)
 
 class Param(TAC):
     def __init__(self, value):
-        self._value = value
+        self.value = value
 
     def __str__(self):
-        return "param {}".format(self._value)
+        return "param {}".format(self.value)
 
 class StartFunc(TAC):
     def __init__(self, identifier, symbol_table):
-        self._identifier = identifier
-        self._symbol_table = symbol_table
+        self.identifier = identifier
+        self.symbol_table = symbol_table
 
     def __str__(self):
-        return "startfunc {}".format(self._identifier)
+        return "startfunc {}".format(self.identifier)
 
 class EndFunc(TAC):
     def __init__(self, identifier):
-        self._identifier = identifier
+        self.identifier = identifier
 
     def __str__(self):
-        return "endfunc {}".format(self._identifier)
+        return "endfunc {}".format(self.identifier)
 
 class Assign(TAC):
     def __init__(self, identifier, var):
-        self._identifier = identifier
-        self._var        = var
+        self.identifier = identifier
+        self.var        = var
 
     def __str__(self):
-        return ":= {} {}".format(self._identifier, self._var)
+        return ":= {} {}".format(self.identifier, self.var)
 
 class Op(TAC):
     def __init__(self, op, assign, lhs, rhs):
-        self._op     = op
-        self._assign = assign
-        self._lhs    = lhs
-        self._rhs    = rhs
+        self.op     = op
+        self.assign = assign
+        self.lhs    = lhs
+        self.rhs    = rhs
 
     def __str__(self):
-        return "{} {} {} {}".format(self._op, self._assign,
-                                    self._lhs, self._rhs)
+        return "{} {} {} {}".format(self.op, self.assign,
+                                    self.lhs, self.rhs)
 
 class Return(TAC):
     def __init__(self, value):
-        self._value = value
+        self.value = value
 
     def __str__(self):
-        return "return {}".format(self._value if self._value else "")
+        return "return {}".format(self.value if self.value else "")
 
 class JP(TAC):
     def __init__(self, label):
-        self._label = label
+        self.label = label
 
     def __str__(self):
-        return "JP {}".format(self._label)
+        return "JP {}".format(self.label)
 
 class JNZ(TAC):
     def __init__(self, label, var):
-        self._label = label
-        self._var   = var
+        self.label = label
+        self.var   = var
 
     def __str__(self):
-        return "JNZ {} {}".format(self._label, self._var)
+        return "JNZ {} {}".format(self.label, self.var)
 
 class JZ(TAC):
     def __init__(self, label, var):
-        self._label = label
-        self._var   = var
+        self.label = label
+        self.var   = var
 
     def __str__(self):
-        return "JZ {} {}".format(self._label, self._var)
+        return "JZ {} {}".format(self.label, self.var)
 
 class Load(TAC):
     def __init__(self, dest, source):
-        self._dest = dest
-        self._source = source
+        self.dest = dest
+        self.source = source
 
     def __str__(self):
-        return "Load {} {}".format(self._dest, self._source)
+        return "Load {} {}".format(self.dest, self.source)
 
 class Store(TAC):
     def __init__(self, dest, source):
-        self._dest = dest
-        self._source = source
+        self.dest = dest
+        self.source = source
 
     def __str__(self):
-        return "Store {} {}".format(self._dest, self._source)
+        return "Store {} {}".format(self.dest, self.source)
 
 def make_tac(input):
     try:

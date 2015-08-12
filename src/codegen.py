@@ -3,15 +3,15 @@ from tac import *
 
 class CodeGenState(object):
     def __init__(self):
-        self._output = []
-        self._param_count = 0
-        self._symbol_table = None
+        self.output = []
+        self.param_count = 0
+        self.symbol_table = None
 
     def outl(self, line, *args, **kwargs):
         self.out("\t" + line, *args, **kwargs)
 
     def out(self, line, *args, **kwargs):
-        self._output.append(line.format(*args, **kwargs))
+        self.output.append(line.format(*args, **kwargs))
 
     def load(self, var, register):
         pass
@@ -43,28 +43,28 @@ class StackFrame(object):
         self.size += 4
 
 def gen_StartFunc(x, state):
-    state._symbol_table = x._symbol_table
-    print("{} : {}".format(x, state._symbol_table._children))
-    print("{}".format(state._symbol_table._children[0]))
-    state.out("{}:", x._identifier)
+    state.symbol_table = x.symbol_table
+    print("{} : {}".format(x, state.symbol_table.children))
+    print("{}".format(state.symbol_table.children[0]))
+    state.out("{}:", x.identifier)
     state.outl("push ebp")
     state.outl("mov ebp, esp")
 
 def gen_FuncCall(x, state):
-    state.outl("call {}", x._identifier)
-    state.outl("add esp, {}", state._param_count * 4)
-    state._param_count = 0
+    state.outl("call {}", x.identifier)
+    state.outl("add esp, {}", state.param_count * 4)
+    state.param_count = 0
 
 def gen_Param(x, state):
-    if isinstance(x._value, ast.Literal):
-        state.outl("push {}", x._value)
-    elif isinstance(x._value, ast.Identifier):
-        offset = state.get_offset(x._value)
+    if isinstance(x.value, ast.Literal):
+        state.outl("push {}", x.value)
+    elif isinstance(x.value, ast.Identifier):
+        offset = state.get_offset(x.value)
         state.outl("mov eax, [esp + {}]", offset)
         state.outl("push eax")
     else:
-        state.outl("push {}", state.get_register(x._value))
-    state._param_count += 1
+        state.outl("push {}", state.get_register(x.value))
+    state.param_count += 1
 
 def gen_Argument(x, state):
     pass
@@ -78,37 +78,37 @@ def gen_Op(x, state):
         "-" : "sub eax,",
         "*" : "mul"
     }
-    instr = instructions[x._op]
+    instr = instructions[x.op]
 
     # load the lhs into eax
-    if isinstance(x._lhs, ast.Identifier):
-        offset = state.get_offset(x._lhs)
+    if isinstance(x.lhs, ast.Identifier):
+        offset = state.get_offset(x.lhs)
         state.outl("mov eax, [esp + {}]", offset)
-    elif isinstance(x._lhs, ast.Literal):
-        state.outl("mov eax, {}", x._lhs)
+    elif isinstance(x.lhs, ast.Literal):
+        state.outl("mov eax, {}", x.lhs)
     else:
         raise NotImplementedError()
 
     # load the rhs into ebx
     state.outl("push ebx")
-    if isinstance(x._rhs, ast.Identifier):
-        offset = state.get_offset(x._rhs)
+    if isinstance(x.rhs, ast.Identifier):
+        offset = state.get_offset(x.rhs)
         state.outl("mov ebx, [esp + {}]", offset)
-    elif isinstance(x._rhs, ast.Literal):
-        state.outl("mov ebx, {}", x._rhs)
+    elif isinstance(x.rhs, ast.Literal):
+        state.outl("mov ebx, {}", x.rhs)
     else:
         raise NotImplementedError()
     state.outl("{} ebx", instr)
     state.outl("pop ebx")
 
 def gen_Assign(x, state):
-    offset = state.get_offset(x._identifier)
-    if isinstance(x._var, ast.Literal):
-        state.outl("mov dword [esp + {}], {}", offset, x._var)
-    elif isinstance(x._var, ast.Identifier):
+    offset = state.get_offset(x.identifier)
+    if isinstance(x.var, ast.Literal):
+        state.outl("mov dword [esp + {}], {}", offset, x.var)
+    elif isinstance(x.var, ast.Identifier):
         raise NotImplementedError()
     else:
-        register = state.get_register(x._var)
+        register = state.get_register(x.var)
         state.outl("mov [esp + {}], {}", offset, register)
 
 def gen_EndFunc(x, state):
@@ -184,7 +184,7 @@ def gen_asm(tac):
             raise Exception(x.__class__.__name__)
     state.outl('%include "src/stdlib.asm"')
 
-    return "\n".join(state._output)
+    return "\n".join(state.output)
 
 if __name__ == "__main__":
     source = """\

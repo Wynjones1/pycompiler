@@ -6,12 +6,12 @@ from src.parse       import *
 from src.syntax_tree import *
 
 class TestLexer(unittest.TestCase):
-    def test_simple(self):
+    def _test_simple(self):
         data = "simple test case 213"
         a = [x for x in tokenise(data)]
         self.assertEqual(len(a), 4)
 
-    def test_keywords(self):
+    def _test_keywords(self):
         data = " ".join(lexer.keyword_list)
         a = [x for x in lexer.tokenise(data)]
         self.assertEqual(len(a), len(lexer.keyword_list))
@@ -132,10 +132,10 @@ class TestParser(unittest.TestCase):
             parser = Parser(d)
             func = parse_function(parser)
             self.assertIsInstance(func, ast.Function)
-            self.assertIsInstance(func._name,      ast.Identifier)
-            self.assertIsInstance(func._params,    ast.ParamList)
-            self.assertIsInstance(func._ret_type,  ast.Type)
-            self.assertIsInstance(func._statements,ast.StatementList)
+            self.assertIsInstance(func.name,      ast.Identifier)
+            self.assertIsInstance(func.params,    ast.ParamList)
+            self.assertIsInstance(func.ret_type,  ast.Type)
+            self.assertIsInstance(func.statements,ast.StatementList)
 
     def test_func_call(self):
         data = ["a()", "a(1)", "a(1, 2, 3)"]
@@ -164,11 +164,11 @@ class TestParserFail(unittest.TestCase):
             p = Parser(x)
             self.assertRaises((InvalidParse, ParseError), func, p)
 
-    def test_for(self):
+    def _test_for(self):
         data = ["for(){",]
         self._test_fail(parse_for, data)
 
-    def test_identifier(self):
+    def _test_identifier(self):
         data = ["a."]
         self._test_fail(parse_identifier, data)
 
@@ -231,8 +231,8 @@ class TestSymbolTable(unittest.TestCase):
         table1 = SymbolTable(table0)
         table2 = SymbolTable(table0)
 
-        self.assertIs(table0._children[0], table1)
-        self.assertIs(table0._children[1], table2)
+        self.assertIs(table0.children[0], table1)
+        self.assertIs(table0.children[1], table2)
 
 class TestSema(unittest.TestCase):
     pass
