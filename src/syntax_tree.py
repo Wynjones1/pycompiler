@@ -152,11 +152,12 @@ class Function(AST):
 
     def make_tables(self, table):
         table[self.name] = self
-        self.symbol_table = SymbolTable(table)
-        self.name.make_tables(self.symbol_table)
+        self.symbol_table = ParamTable(table)
+        self.name.make_tables(table)
+        self.ret_type.make_tables(table)
+
         self.params.make_tables(self.symbol_table)
-        self.ret_type.make_tables(self.symbol_table)
-        self.statements.make_tables(self.symbol_table)
+        self.statements.make_tables(SubTable(self.symbol_table))
 
     @semafunc
     def sema(self, data):
@@ -557,7 +558,7 @@ class ParamList(AST):
         self.data[key] = value
 
     def make_tables(self, table):
-        self.symbol_table = ParamTable(table)
+        self.symbol_table = table
         for i in self.data:
             i.make_tables(self.symbol_table)
 
