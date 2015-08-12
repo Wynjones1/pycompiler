@@ -360,7 +360,7 @@ class FuncCall(AST):
 
     def make_tac(self, state):
         out = [] 
-        for p in self.params:
+        for p in self.params[::-1]:
             out += p.make_tac(state)
             out.append(tac.Param(state.last_var()))
         out.append(tac.FuncCall(self.identifier))

@@ -33,7 +33,7 @@ def sizeof(type):
 class StackFrame(object):
     def __init__(self):
         self.size    = 0
-        self.offset  = 4 # account for the return address
+        self.offset  = 8 # account for the return address
         self.symbols = {}
 
     def __getitem__(self, key):
@@ -46,7 +46,7 @@ def gen_stackframe(table, frame = None):
             size = sizeof(type)
             frame.symbols[name] = frame.offset
             frame.offset += size
-        frame.offset = -4 # account for the base pointer
+        frame.offset = -4
     else:
         for name, type in table.data.items():
             if isinstance(type, ast.Type):
@@ -61,10 +61,11 @@ def gen_stackframe(table, frame = None):
 
 def gen_StartFunc(x, state):
     state.frame = gen_stackframe(x.symbol_table)
+    print(state.frame.symbols)
     state.out("{}:", x.identifier)
     state.outl("push ebp")
     state.outl("mov ebp, esp")
-    state.outl("add esp, {}", state.frame.size)
+    state.outl("sub esp, {}", state.frame.size)
 
 def gen_FuncCall(x, state):
     state.outl("call {}", x.identifier)
@@ -103,7 +104,7 @@ def gen_Op(x, state):
     elif isinstance(x.lhs, ast.Literal):
         state.outl("mov eax, {}", x.lhs)
     else:
-        raise NotImplementedError()
+        pass
 
     # load the rhs into ebx
     state.outl("push ebx")
@@ -129,6 +130,7 @@ def gen_Assign(x, state):
 
 def gen_EndFunc(x, state):
     state.out(".end:")
+    state.outl("add esp, {}", state.frame.size)
     state.outl("pop ebp")
     state.outl("ret")
     pass
@@ -219,24 +221,13 @@ if __name__ == "__main__":
     source = """\
     function f0(int f0_param_0, int f0_param_1)
     {
-        int f0_scope_0
-        if(f0_scope_0)
-        {
-            int a
-            a := 10 * a
-        }
-        int c
+        print(f0_param_0)
     }
 
     function main()
     {
-        int b := 1234
-        int c := 123
-        int a123
-        print(b + 123)
-        print(c)
-        print(a123)
-        f0(b + 1, b + 2)
+        int b := 100
+        f0(b * b * b, b + 21)
     }
     """
 
