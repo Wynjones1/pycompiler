@@ -4,6 +4,7 @@ import types
 from src             import lexer
 from src.parse       import *
 from src.syntax_tree import *
+from src.tac         import *
 
 class TestLexer(unittest.TestCase):
     def _test_simple(self):
@@ -234,6 +235,29 @@ class TestSymbolTable(unittest.TestCase):
         self.assertIs(table0.children[0], table1)
         self.assertIs(table0.children[1], table2)
 
+class TestRenameTable(unittest.TestCase):
+    def test_no_rename(self):
+        table = RenameTable()
+        table.add(Identifier("a"))
+        table.push()
+        table.add(Identifier("b"))
+        self.assertEqual(table[Identifier("b")], Identifier("b"))
+
+    def test_with_rename(self):
+        table = RenameTable()
+        table.add(Identifier("a"))
+        table.push()
+        table.add(Identifier("a"))
+        self.assertEqual(table[Identifier("a")], Identifier("a'"))
+
+    def test_two_levels(self):
+        table = RenameTable()
+        table.add(Identifier("a"))
+        table.push()
+        table.add(Identifier("a"))
+        table.push()
+        table.add(Identifier("a"))
+        self.assertEqual(table[Identifier("a")], Identifier("a''"))
 class TestSema(unittest.TestCase):
     pass
 

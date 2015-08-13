@@ -43,12 +43,6 @@ class Parser(object):
         self.next()
         return self.expect(test, message)
 
-    def get_pos(self):
-        return self.pos
-
-    def set_pos(self, pos):
-        self.pos = pos
-
     def done(self):
         return self.pos + 1 == len(self.tokens)
 
@@ -65,7 +59,7 @@ def parsefunc(func):
     @functools.wraps(func)
     def wrap(parser):
         global indent
-        pos = parser.get_pos()
+        pos = parser.pos
         start_token = parser[pos] if pos >= 0 else None
         if verbose:
             print("\t" * indent + "enter: " + func.__name__)
@@ -76,13 +70,13 @@ def parsefunc(func):
             if verbose:
                 print("\t" * indent + "OK   : " + func.__name__)
             retval.start_token = start_token
-            pos = parser.get_pos()
+            pos = parser.pos
             retval.end_token   = parser[pos] if pos >= 1 else None
             return retval
         except InvalidParse as e:
             if e.function == None:
                 e.function = func
-            parser.set_pos(pos)
+            parser.pos = pos
             indent -= 1
             if verbose:
                 print("\t" * indent + "fail : " + func.__name__)
@@ -391,12 +385,11 @@ def parse_import(parser):
         raise ParseError("", parser.cur()), None, sys.exc_info()[2]
 
 def parse_program(parser):
-    funcs = (parse_function, parse_import)
     statements = []
     parser.consume("\n")
     try:
         while not parser.done():
-            for func in funcs:
+            for func in (parse_function, parse_import):
                 try:
                     statements.append(func(parser))
                     break

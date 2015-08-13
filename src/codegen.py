@@ -96,9 +96,20 @@ def gen_StartFunc(x, state):
     state.set_base_pointer()
     state.add_stack(state.frame.size)
 
+#TODO: Cleanup
+size = 0
+def gen_Decl(x, state):
+    global size
+    size += 4
+
+def gen_EndDecls(x, state):
+    global size
+    state.add_stack(size)
+    size = 0
+
 def gen_FuncCall(x, state):
     state.outl("call {}", x.identifier)
-    state.sub_stack(state.param_count * 4)
+    state.sub_stack(state.param_count)
     state.param_count = 0
 
 def gen_Param(x, state):
@@ -110,7 +121,7 @@ def gen_Param(x, state):
         state.push("eax")
     else:
         state.push(state.get_register(x.value))
-    state.param_count += 1
+    state.param_count += 4
 
 def gen_Argument(x, state):
     pass
@@ -177,6 +188,7 @@ def gen_JZ(x, state):
     state.outl("cmp eax, 0")
     state.outl("jz L{}", x.label.value)
 
+
 def output_print(state):
     state.outl("mov eax, 4")
     state.outl("mov ebx, 1")
@@ -215,6 +227,8 @@ def gen_asm(tac):
         state.out(";------------------------------------| {}", x)
         if isinstance(x, StartFunc):
             gen_StartFunc(x, state)
+        elif isinstance(x, EndFunc):
+            gen_EndFunc(x, state)
         elif isinstance(x, Param):
             gen_Param(x, state)
         elif isinstance(x, Argument):
@@ -231,12 +245,14 @@ def gen_asm(tac):
             gen_JZ(x, state)
         elif isinstance(x, Assign):
             gen_Assign(x, state)
-        elif isinstance(x, EndFunc):
-            gen_EndFunc(x, state)
         elif isinstance(x, Return):
             gen_Return(x, state)
         elif isinstance(x, FuncCall):
             gen_FuncCall(x, state)
+        elif isinstance(x, Decl):
+            gen_Decl(x, state)
+        elif isinstance(x, EndDecls):
+            gen_EndDecls(x, state)
         elif isinstance(x, Label):
             state.out(x)
         else:

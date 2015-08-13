@@ -16,11 +16,57 @@ class Label(object):
     def __str__(self):
         return "L{}:".format(self.value)
 
+class RenameTable(object):
+    """ RenameTable is used to keep track of identifiers that should
+        be renamed, if they are in the table they are renames else
+        they are left alone, adding an element to the table will
+        add a suffix to make it unique. this suffix stacks so that
+        if multiple nested  "scopes"  are dealt with correctly.
+
+        e.g a -> a'
+    """
+    def __init__(self):
+        self.data = [{}]
+
+    def scope(self):
+        class ContextManager(object):
+            def __enter__(s):
+                self.push()
+            def __exit__(s, *args, **kwargs):
+                self.pop()
+        return ContextManager()
+
+    def push(self):
+        self.data.append({})
+
+    def pop(self):
+        self.data.pop()
+
+    def add(self, value):
+        if value in self.data[-1]:
+            raise Exception("Duplicate Key : {}".format(value))
+        try:
+            prev = self[value]
+            self.data[-1][value] = prev.suffix("'")
+        except KeyError:
+            self.data[-1][value] = value
+
+    def __getitem__(self, key):
+        for d in self.data[::-1]:
+            try:
+                if key in d:
+                    return d[key]
+            except KeyError:
+                pass
+        raise KeyError()
+
 class TacState(object):
     def __init__(self):
         self.label_count = 0
         self._last_var    = None
         self.temp_count  = 0
+        self.rename_table = RenameTable()
+        self.decl_list = set()
 
     def last_var(self):
         assert self._last_var != None
@@ -146,6 +192,24 @@ class Store(TAC):
     def __str__(self):
         return "Store {} {}".format(self.dest, self.source)
 
+class Decl(TAC):
+    def __init__(self, name, typename):
+        self.name     = name
+        self.typename = typename
+
+    def __str__(self):
+        return "decl {} {}".format(self.name, self.typename)
+
+    def __eq__(self, other):
+        return self.name == other.name and self.typename == other.typename
+
+    def __hash__(self):
+        return str(self).__hash__()
+
+class EndDecls(TAC):
+    def __str__(self):
+        return "end_decls"
+
 def make_tac(input):
     try:
         prog = parse(input)
@@ -159,16 +223,34 @@ def make_tac(input):
 
 if __name__ == "__main__":
     test = """
-    function a()
+    function a(int a)
     {
-        while(a < 10)
+        int local0 := 10
+        if(1)
         {
-            b := 10 + 10
+            int a := 123
+            int local0 := 11
+            print(local0)
+            print(a * a * (a + 1))
+            print(a)
+
+            if(1)
+            {
+                int a := 321
+            }
+
+            while(1)
+            {
+                int a := 1234
+            }
         }
+        print(local0)
     }
     """
     prog = parse(test)
-    prog.make_tac(TacState())
+    tac = prog.make_tac(TacState())
+    for x in tac:
+        print(x)
 
     """
     argument_parser = argparse.ArgumentParser()

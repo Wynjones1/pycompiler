@@ -1,4 +1,5 @@
 SRCDIR := ./src
+
 all:
 	$(SRCDIR)/codegen.py
 	nasm -g -f elf -l out.lst out.s

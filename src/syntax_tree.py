@@ -170,9 +170,12 @@ class Function(AST):
         out = []
         out.append(tac.StartFunc(self.name, self.symbol_table))
         out += self.params.make_tac(state)
-        out += self.statements.make_tac(state)
-        out.append(tac.EndFunc(self.name))
-        return out
+        state.decl_list = set()
+        with state.rename_table.scope():
+            temp = [tac.EndDecls()]
+            temp += self.statements.make_tac(state)
+            temp.append(tac.EndFunc(self.name))
+        return out + list(state.decl_list) + temp
         
 
 class If(AST):
@@ -214,7 +217,9 @@ class If(AST):
         l0 = state.make_label()
         out += self.cond.make_tac(state)
         out.append(tac.JZ(l0, state.last_var()))
+        state.rename_table.push()
         out += self.statements.make_tac(state)
+        state.rename_table.pop()
         out.append(l0)
         return out
 
@@ -365,6 +370,7 @@ class FuncCall(AST):
             out.append(tac.Param(state.last_var()))
         out.append(tac.FuncCall(self.identifier))
         return out
+
 class Type(AST):
     def __init__(self, identifier):
         super(Type, self).__init__()
@@ -384,6 +390,9 @@ class Type(AST):
 
     def __str__(self):
         return str(self.identifier)
+
+    def __eq__(self, other):
+        return self.identifier == other.identifier
 
 class For(AST):
     def __init__(self, decl, invariant, post, statements):
@@ -500,7 +509,8 @@ class While(AST):
         l1 = state.make_label()
         out.append(tac.JP(l1))
         out.append(l0)
-        out += self.statements.make_tac(state)
+        with state.rename_table.scope():
+            out += self.statements.make_tac(state)
         out.append(l1)
         out += self.cond.make_tac(state)
         out.append(tac.JNZ(l0, state.last_var()))
@@ -538,9 +548,12 @@ class Decl(AST):
             resolve_type(self.type, type0)
 
     def make_tac(self, state):
+        state.rename_table.add(self.var)
+        name = state.rename_table[self.var]
+        state.decl_list.add(tac.Decl(name, self.type))
         if self.expr:
             out = self.expr.make_tac(state)
-            out.append(tac.Assign(self.var, state.last_var()))
+            out.append(tac.Assign(name, state.last_var()))
             return out
         return []
 
@@ -591,6 +604,12 @@ class Identifier(AST):
     def make_tables(self, table):
         self.symbol_table = table 
 
+    def suffix(self, string):
+        """ Add a suffix to a single length identifier
+        """
+        assert(len(self.identifiers) == 1)
+        return Identifier(self.identifiers[0] + string)
+
     def __eq__(self, other):
         if not isinstance(other, Identifier):
             return False
@@ -609,7 +628,8 @@ class Identifier(AST):
             raise SemaError("Identifier '{}' cannot be found in the current scope.".format(self.strval), 0)
 
     def make_tac(self, state):
-        state.set_var(self)
+        var = state.rename_table[self]
+        state.set_var(var)
         return []
 
 class Literal(AST):
