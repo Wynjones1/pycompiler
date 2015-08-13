@@ -1,14 +1,40 @@
 #!/usr/bin/env python2.7
 from tac import *
-import symbol_table
 
 class CodeGenState(object):
     def __init__(self):
         self.output = []
         self.param_count = 0
-        self.frame = None
         self.pos = 0
         self.pos_stack = []
+
+        # This will store the offsets for the
+        # All of the frames
+        self.decls        = [{}]
+        self.param_offset = [0]
+        self.arg_offset   = [0]
+
+    def new_frame(self):
+        self.decls.append({})
+        self.param_offset.append(0)
+        self.arg_offset.append(0)
+
+    def delete_frame(self):
+        self.decls.pop()
+        self.param_offset.pop()
+        self.arg_offset.pop()
+
+    def add_decl(self, decl):
+        self.decls[-1][decl.name] = -self.param_offset[-1] - 4
+        self.param_offset[-1] += self.sizeof(decl.typename)
+
+    def add_arg(self, arg):
+        self.decls[-1][arg.identifier] = self.arg_offset[-1] + 4
+        self.arg_offset[-1] += self.sizeof(arg.type)
+
+    def sizeof(self, type):
+        return 4
+
 
     def outl(self, line, *args, **kwargs):
         self.out("\t" + line, *args, **kwargs)
@@ -20,9 +46,7 @@ class CodeGenState(object):
         pass
 
     def get_offset(self, identifier):
-        if self.frame == None:
-            raise Exception("Cannot find {}, not in a stack frame".format(identifier))
-        return self.frame[identifier]
+        return self.decls[-1][identifier]
 
     def get_register(self, temp):
         """ returns the current location of temp in registers
@@ -57,55 +81,16 @@ class CodeGenState(object):
         self.pos = self.pos_stack.pop()
         
 
-def sizeof(type):
-    return 4
-
-class StackFrame(object):
-    def __init__(self):
-        self.size    = 0
-        self.offset  = 8 # account for the return address
-        self.symbols = {}
-
-    def __getitem__(self, key):
-        return self.symbols[key]
-
-def gen_stackframe(table, frame = None):
-    if frame == None:
-        frame = StackFrame()
-        for name, type in table.data.items():
-            size = sizeof(type)
-            frame.symbols[name] = frame.offset
-            frame.offset += size
-        frame.offset = -4
-    else:
-        for name, type in table.data.items():
-            if isinstance(type, ast.Type):
-                size = sizeof(type)
-                frame.symbols[name] = frame.offset
-                frame.offset -= size
-                frame.size += size
-    for x in table.children:
-        if isinstance(x, symbol_table.SubTable):
-            frame = gen_stackframe(x, frame)
-    return frame
-
 def gen_StartFunc(x, state):
-    state.frame = gen_stackframe(x.symbol_table)
-    print(state.frame.symbols)
+    state.new_frame()
     state.out("{}:", x.identifier)
     state.set_base_pointer()
-    state.add_stack(state.frame.size)
 
-#TODO: Cleanup
-size = 0
 def gen_Decl(x, state):
-    global size
-    size += 4
+    state.add_decl(x)
 
 def gen_EndDecls(x, state):
-    global size
-    state.add_stack(size)
-    size = 0
+    state.add_stack(state.param_offset[-1])
 
 def gen_FuncCall(x, state):
     state.outl("call {}", x.identifier)
@@ -124,7 +109,7 @@ def gen_Param(x, state):
     state.param_count += 4
 
 def gen_Argument(x, state):
-    pass
+    state.add_arg(x)
 
 def gen_Op(x, state):
     """
@@ -172,14 +157,14 @@ def gen_EndFunc(x, state):
     state.out(".end:")
     state.unset_base_pointer()
     state.outl("ret")
-    pass
+    state.delete_frame()
 
 def gen_Return(x, state):
     state.outl("jp .end")
 
 def gen_JZ(x, state):
     if isinstance(x.var, ast.Literal):
-        state.outl("mov eax, {}", offset, x.var)
+        state.outl("mov eax, {}", x.var.value)
     elif isinstance(x.var, ast.Identifier):
         offset = state.get_offset(x.var)
         state.outl("mov eax, [ebp + {}]", offset)
@@ -266,13 +251,21 @@ if __name__ == "__main__":
     function f0(int f0_param_0, int f0_param_1)
     {
         print(f0_param_0)
+        print(f0_param_1)
     }
 
     function main()
     {
         int b := 2
-        //f0((b + 1) * (b + 2), b + 21)
-        f0(b * b, 10)
+        if(10)
+        {
+            int b := 123
+            if(10)
+            {
+                int b
+            }
+            f0(b * b, 10)
+        }
     }
     """
 
