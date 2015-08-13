@@ -7,6 +7,8 @@ class CodeGenState(object):
         self.output = []
         self.param_count = 0
         self.frame = None
+        self.pos = 0
+        self.pos_stack = []
 
     def outl(self, line, *args, **kwargs):
         self.out("\t" + line, *args, **kwargs)
@@ -26,6 +28,34 @@ class CodeGenState(object):
         """ returns the current location of temp in registers
         """
         return "eax"
+
+    def push(self, register):
+        self.pos += 4
+        self.outl("push {}", register)
+
+    def pop(self, register):
+        self.pos -= 4
+        self.outl("pop {}", register)
+
+    def add_stack(self, amount):
+        self.pos += amount
+        self.outl("sub esp, {}", amount)
+
+    def sub_stack(self, amount):
+        self.pos -= amount
+        self.outl("add esp, {}", amount)
+
+    def set_base_pointer(self):
+        self.pos_stack.append(self.pos)
+        self.outl("push ebp")
+        self.outl("mov ebp, esp")
+        self.pos = 0
+
+    def unset_base_pointer(self):
+        self.outl("mov esp, ebp")
+        self.outl("pop ebp")
+        self.pos = self.pos_stack.pop()
+        
 
 def sizeof(type):
     return 4
@@ -63,24 +93,23 @@ def gen_StartFunc(x, state):
     state.frame = gen_stackframe(x.symbol_table)
     print(state.frame.symbols)
     state.out("{}:", x.identifier)
-    state.outl("push ebp")
-    state.outl("mov ebp, esp")
-    state.outl("sub esp, {}", state.frame.size)
+    state.set_base_pointer()
+    state.add_stack(state.frame.size)
 
 def gen_FuncCall(x, state):
     state.outl("call {}", x.identifier)
-    state.outl("add esp, {}", state.param_count * 4)
+    state.sub_stack(state.param_count * 4)
     state.param_count = 0
 
 def gen_Param(x, state):
     if isinstance(x.value, ast.Literal):
-        state.outl("push {}", x.value)
+        state.push(x.value)
     elif isinstance(x.value, ast.Identifier):
         offset = state.get_offset(x.value)
         state.outl("mov eax, [ebp + {}]", offset)
-        state.outl("push eax")
+        state.push("eax")
     else:
-        state.outl("push {}", state.get_register(x.value))
+        state.push(state.get_register(x.value))
     state.param_count += 1
 
 def gen_Argument(x, state):
@@ -107,7 +136,7 @@ def gen_Op(x, state):
         pass
 
     # load the rhs into ebx
-    state.outl("push ebx")
+    state.push("eax")
     if isinstance(x.rhs, ast.Identifier):
         offset = state.get_offset(x.rhs)
         state.outl("mov ebx, [ebp + {}]", offset)
@@ -116,7 +145,7 @@ def gen_Op(x, state):
     else:
         raise NotImplementedError()
     state.outl("{} ebx", instr)
-    state.outl("pop ebx")
+    state.pop("ebx")
 
 def gen_Assign(x, state):
     offset = state.get_offset(x.identifier)
@@ -130,8 +159,7 @@ def gen_Assign(x, state):
 
 def gen_EndFunc(x, state):
     state.out(".end:")
-    state.outl("add esp, {}", state.frame.size)
-    state.outl("pop ebp")
+    state.unset_base_pointer()
     state.outl("ret")
     pass
 
@@ -227,7 +255,8 @@ if __name__ == "__main__":
     function main()
     {
         int b := 2
-        f0((b + 1) * (b + 2), b + 21)
+        //f0((b + 1) * (b + 2), b + 21)
+        f0(b * b, 10)
     }
     """
 

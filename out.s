@@ -29,7 +29,7 @@ f0:
 	add esp, 4
 ;------------------------------------| endfunc f0
 .end:
-	add esp, 0
+	mov esp, ebp
 	pop ebp
 	ret
 ;------------------------------------| startfunc main
@@ -39,38 +39,22 @@ main:
 	sub esp, 4
 ;------------------------------------| := b 2
 	mov dword [ebp + -4], 2
-;------------------------------------| + _t0 b 21
+;------------------------------------| param 10
+	push 10
+;------------------------------------| * _t0 b b
 	mov eax, [ebp + -4]
-	push ebx
-	mov ebx, 21
-	add eax, ebx
+	push eax
+	mov ebx, [ebp + -4]
+	mul ebx
 	pop ebx
 ;------------------------------------| param _t0
-	push eax
-;------------------------------------| * _t1 b b
-	mov eax, [ebp + -4]
-	push ebx
-	mov ebx, [ebp + -4]
-	mul ebx
-	pop ebx
-;------------------------------------| * _t2 _t1 b
-	push ebx
-	mov ebx, [ebp + -4]
-	mul ebx
-	pop ebx
-;------------------------------------| * _t3 _t2 b
-	push ebx
-	mov ebx, [ebp + -4]
-	mul ebx
-	pop ebx
-;------------------------------------| param _t3
 	push eax
 ;------------------------------------| CALL f0
 	call f0
 	add esp, 8
 ;------------------------------------| endfunc main
 .end:
-	add esp, 4
+	mov esp, ebp
 	pop ebp
 	ret
 	%include "src/stdlib.asm"
