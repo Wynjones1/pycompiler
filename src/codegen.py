@@ -257,6 +257,7 @@ if __name__ == "__main__":
     function main()
     {
         int b := 2
+        int a := 556
         if(10)
         {
             int b := 123
@@ -265,6 +266,7 @@ if __name__ == "__main__":
                 int b
             }
             f0(b * b, 10)
+            print(a)
         }
     }
     """
