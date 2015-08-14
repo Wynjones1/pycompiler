@@ -49,7 +49,8 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(len(toks), 1)
         self.assertIsInstance(toks[0], lexer.Integer)
 
-    @data("0x0", "0x1", "0X123ABD", "1234567890", "0x1234567890abcdefABCDEF", "1e123")
+    @data("0x0", "0x1", "0X123ABD",
+          "1234567890", "0x1234567890abcdefABCDEF", "0x1e123")
     def test_hex_integer(self, data):
         toks = [x for x in lexer.tokenise(data)]
         self.assertEqual(len(toks), 1)
@@ -291,8 +292,54 @@ class TestRenameTable(unittest.TestCase):
         self.table.add(Identifier("a"))
         self.assertEqual(self.table[Identifier("a")], Identifier("a''"))
 
+@ddt
 class TestSema(unittest.TestCase):
-    pass
+    def assertRaisesSemaError(self, data, errortype):
+        tree = parse(data)
+        with self.assertRaises(errortype):
+            tree.sema()
+    
+    def test_undefined_variable(self):
+        data = """\
+        function main()
+        {
+            a := 10
+        }
+        """
+        self.assertRaisesSemaError(data, SemaIdentifierUndefinedError)
+
+    def test_undefined_function(self):
+        data = """\
+        function main()
+        {
+            a()
+        }
+        """
+        self.assertRaisesSemaError(data, SemaFunctionUndefinedError)
+
+    def test_missing_function_parameter(self):
+        data = """\
+        function func_0(int a)
+        {}
+
+        function main()
+        {
+            func_0()
+        }
+        """
+        self.assertRaisesSemaError(data, SemaParamMismatchError)
+
+    def test_too_many_function_parameters(self):
+        data = """\
+        function func_0(int a)
+        {}
+
+        function main()
+        {
+            func_0(10, 10)
+        }
+        """
+        self.assertRaisesSemaError(data, SemaParamMismatchError)
 
 if __name__ == "__main__":
     unittest.main()

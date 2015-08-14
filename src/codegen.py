@@ -248,7 +248,7 @@ def gen_asm(tac):
 
 if __name__ == "__main__":
     source = """\
-    function fib(int a)
+    function fib(int a) -> int
     {
         print(a)
     }

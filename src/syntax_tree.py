@@ -27,6 +27,18 @@ class SemaError(RuntimeError):
     def __init__(self, message, errno):
         super(SemaError, self).__init__(message, errno)
 
+class SemaIdentifierUndefinedError(SemaError):
+    pass
+
+class SemaIdentifierNotFunctionError(SemaError):
+    pass
+
+class SemaParamMismatchError(SemaError):
+    pass
+
+class SemaFunctionUndefinedError(SemaError):
+    pass
+
 def semafunc(function):
     @functools.wraps(function)
     def wrap(*args, **kwargs):
@@ -350,12 +362,15 @@ class FuncCall(AST):
         try:
             function = self.symbol_table[self.identifier]
         except KeyError:
-            print(self.identifier.start_token)
-            raise SemaError("function {} cannot be found.".format(self.identifier.strval), 3)
+            msg = "function {} cannot be found.".format(self.identifier.strval),
+            raise SemaFunctionUndefinedError(msg, 3)
         if not isinstance(function, Function):
-            raise SemaError("identifier {} is not a function".format(function), 1)
+            msg = "identifier {} is not a function".format(function)
+            raise SemaIdentifierNotFunctionError(msg, 1)
         if len(function.params) != len(self.params):
-            raise SemaError("number of arguments to function does not match", 2)
+            raise SemaParamMismatchError(
+                      "number of arguments to function does not match",
+                      2)
         for type0, statement in zip(function.params, self.params):
             type1 = statement.sema(data)
             resolve_type(type0, type1)
@@ -631,7 +646,8 @@ class Identifier(AST):
         try:
             return self.symbol_table[self]
         except KeyError:
-            raise SemaError("Identifier '{}' cannot be found in the current scope.".format(self.strval), 0)
+            msg = "Identifier '{}' cannot be found in the current scope.".format(self.strval)
+            raise SemaIdentifierUndefinedError(msg, 0)
 
     def make_tac(self, state):
         var = state.rename_table[self]
