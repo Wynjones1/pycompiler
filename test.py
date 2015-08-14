@@ -1,11 +1,14 @@
 #!/usr/bin/env python2.7
 import unittest
 import types
+from ddt import ddt, data
+
 from src             import lexer
 from src.parse       import *
 from src.syntax_tree import *
 from src.tac         import *
 
+@ddt
 class TestLexer(unittest.TestCase):
     def _test_simple(self):
         data = "simple test case 213"
@@ -34,24 +37,51 @@ class TestLexer(unittest.TestCase):
                    "sodifj_osdjf_naosdf_ofa"]
         self._test_type(id_list, lexer.Identifier)
 
-    def test_integers(self):
-        int_list = ["123", "0x123", "0b10010101001010", "0X123ABD", "1234567890", "0x1234567890abcdefABCDEF", "1e123"]
-        self._test_type(int_list, lexer.Integer)
+    @data("1", "12", "123")
+    def test_integer(self, data):
+        toks = [x for x in lexer.tokenise(data)]
+        self.assertEqual(len(toks), 1)
+        self.assertIsInstance(toks[0], lexer.Integer)
 
-    def test_floats(self):
-        int_list = ["0.1", "0.123456789", "123.456789", "1.0e10"]
-        self._test_type(int_list, lexer.Float)
+    @data("0b0", "0b1", "0b10101", "0b0000")
+    def test_binary_integer(self, data):
+        toks = [x for x in lexer.tokenise(data)]
+        self.assertEqual(len(toks), 1)
+        self.assertIsInstance(toks[0], lexer.Integer)
+
+    @data("0x0", "0x1", "0X123ABD", "1234567890", "0x1234567890abcdefABCDEF", "1e123")
+    def test_hex_integer(self, data):
+        toks = [x for x in lexer.tokenise(data)]
+        self.assertEqual(len(toks), 1)
+        self.assertIsInstance(toks[0], lexer.Integer)
+
+    @data("0e10", "10e10", "0x1e10")
+    def test_exponent_integer(self, data):
+        toks = [x for x in lexer.tokenise(data)]
+        self.assertEqual(len(toks), 1)
+        self.assertIsInstance(toks[0], lexer.Integer)
+
+    @data("0.1", "0.123456789", "123.456789", "1.0e10")
+    def test_floats(self, data):
+        toks = [x for x in lexer.tokenise(data)]
+        self.assertEqual(len(toks), 1)
+        self.assertIsInstance(toks[0], lexer.Float)
 
     def test_comps(self):
         comp_list = ["<", "<=", ">", ">=", "!=", "=="]
         self._test_type(comp_list, lexer.Comp)
         self._test_type(comp_list, lexer.Comp, sep = "")
 
-    @unittest.expectedFailure
-    def test_string(self):
-        string_list = ['"hello, world!"', '"escaped string\""']
+    def test_simple_string(self):
+        string_list = ['"Hello, world!"']
         self._test_type(string_list, lexer.String)
 
+    @unittest.expectedFailure
+    def test_escaped_string(self):
+        string_list = ['"escaped string\""']
+        self._test_type(string_list, lexer.String)
+
+@ddt
 class TestParser(unittest.TestCase):
     def _test_generic(self, data, func, typeof):
         for idx, i in enumerate(data):
@@ -127,16 +157,18 @@ class TestParser(unittest.TestCase):
         }"""]
         self._test_generic(data, parse_function, ast.Function)
 
-    def test_function_param_list(self):
-        data = ["function a(){}"]
-        for d in data:
-            parser = Parser(d)
-            func = parse_function(parser)
-            self.assertIsInstance(func, ast.Function)
-            self.assertIsInstance(func.name,      ast.Identifier)
-            self.assertIsInstance(func.params,    ast.ParamList)
-            self.assertIsInstance(func.ret_type,  ast.Type)
-            self.assertIsInstance(func.statements,ast.StatementList)
+    def assertIsFunction(self, data):
+        self.assertIsInstance(data, ast.Function)
+        self.assertIsInstance(data.name,      ast.Identifier)
+        self.assertIsInstance(data.params,    ast.ParamList)
+        self.assertIsInstance(data.ret_type,  ast.Type)
+        self.assertIsInstance(data.statements,ast.StatementList)
+
+    @data("function a(){}")
+    def test_function_param_list(self, data):
+        parser = Parser(data)
+        func = parse_function(parser)
+        self.assertIsFunction(func)
 
     def test_func_call(self):
         data = ["a()", "a(1)", "a(1, 2, 3)"]
@@ -236,28 +268,29 @@ class TestSymbolTable(unittest.TestCase):
         self.assertIs(table0.children[1], table2)
 
 class TestRenameTable(unittest.TestCase):
+    def setUp(self):
+        self.table = RenameTable()
+
     def test_no_rename(self):
-        table = RenameTable()
-        table.add(Identifier("a"))
-        table.push()
-        table.add(Identifier("b"))
-        self.assertEqual(table[Identifier("b")], Identifier("b"))
+        self.table.add(Identifier("a"))
+        self.table.push()
+        self.table.add(Identifier("b"))
+        self.assertEqual(self.table[Identifier("b")], Identifier("b"))
 
     def test_with_rename(self):
-        table = RenameTable()
-        table.add(Identifier("a"))
-        table.push()
-        table.add(Identifier("a"))
-        self.assertEqual(table[Identifier("a")], Identifier("a'"))
+        self.table.add(Identifier("a"))
+        self.table.push()
+        self.table.add(Identifier("a"))
+        self.assertEqual(self.table[Identifier("a")], Identifier("a'"))
 
     def test_two_levels(self):
-        table = RenameTable()
-        table.add(Identifier("a"))
-        table.push()
-        table.add(Identifier("a"))
-        table.push()
-        table.add(Identifier("a"))
-        self.assertEqual(table[Identifier("a")], Identifier("a''"))
+        self.table.add(Identifier("a"))
+        self.table.push()
+        self.table.add(Identifier("a"))
+        self.table.push()
+        self.table.add(Identifier("a"))
+        self.assertEqual(self.table[Identifier("a")], Identifier("a''"))
+
 class TestSema(unittest.TestCase):
     pass
 

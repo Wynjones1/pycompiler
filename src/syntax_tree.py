@@ -167,8 +167,7 @@ class Function(AST):
         data.ret_type = temp
 
     def make_tac(self, state):
-        out = []
-        out.append(tac.StartFunc(self.name, self.symbol_table))
+        out = [tac.StartFunc(self.name, self.symbol_table)]
         out += self.params.make_tac(state)
         state.decl_list = set()
         with state.rename_table.scope():
@@ -217,9 +216,8 @@ class If(AST):
         l0 = state.make_label()
         out += self.cond.make_tac(state)
         out.append(tac.JZ(l0, state.last_var()))
-        state.rename_table.push()
-        out += self.statements.make_tac(state)
-        state.rename_table.pop()
+        with state.rename_table.scope():
+            out += self.statements.make_tac(state)
         out.append(l0)
         return out
 
@@ -309,9 +307,8 @@ class Assign(Binop):
     def make_tac(self, state):
         out = self.rhs.make_tac(state)
         rhs_temp = state.last_var()
-        lhs_temp = state.make_temp()
         out += self.lhs.make_tac(state)
-        out.append(tac.Assign(self.lhs, rhs_temp))
+        out.append(tac.Assign(state.last_var(), rhs_temp))
         return out
 
 class Import(AST):
@@ -365,10 +362,12 @@ class FuncCall(AST):
 
     def make_tac(self, state):
         out = [] 
+        #TODO: Add function names to rename table
+        name = self.identifier
         for p in self.params[::-1]:
             out += p.make_tac(state)
             out.append(tac.Param(state.last_var()))
-        out.append(tac.FuncCall(self.identifier))
+        out.append(tac.FuncCall(name))
         return out
 
 class Type(AST):
@@ -387,6 +386,11 @@ class Type(AST):
     def make_tables(self, table):
         self.symbol_table = table
         self.identifier.make_tables(table)
+
+    def make_tac(self, state):
+        #TODO: Add types to the rename table
+        state.set_var(self)
+        return []
 
     def __str__(self):
         return str(self.identifier)
@@ -425,7 +429,6 @@ class For(AST):
             self.invariant.make_tables(self.symbol_table)
         if self.post:
             self.post.make_tables(self.symbol_table)
-        self.statements.make_tables(SubTable(self.symbol_table))
 
     @semafunc
     def sema(self, data):
@@ -459,7 +462,8 @@ class For(AST):
             out += self.decl.make_tac(state)
         out.append(tac.JP(l1))
         out.append(l0)
-        out += self.statements.make_tac(state)
+        with state.rename_table.scope():
+            out += self.statements.make_tac(state)
         if self.post:
             out += self.post.make_tac(state)
         out.append(l1)
@@ -550,7 +554,8 @@ class Decl(AST):
     def make_tac(self, state):
         state.rename_table.add(self.var)
         name = state.rename_table[self.var]
-        state.decl_list.add(tac.Decl(name, self.type))
+        self.type.make_tac(state)
+        state.decl_list.add(tac.Decl(name, state.last_var()))
         if self.expr:
             out = self.expr.make_tac(state)
             out.append(tac.Assign(name, state.last_var()))
@@ -581,6 +586,7 @@ class ParamList(AST):
     def make_tac(self, state):
         out = []
         for s in self:
+            out += s.type.make_tac(state)
             out.append(tac.Argument(s.type, s.var))
             out += s.make_tac(state)
         return out

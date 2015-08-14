@@ -29,7 +29,7 @@ class CodeGenState(object):
         self.param_offset[-1] += self.sizeof(decl.typename)
 
     def add_arg(self, arg):
-        self.decls[-1][arg.identifier] = self.arg_offset[-1] + 4
+        self.decls[-1][arg.identifier] = self.arg_offset[-1] + 8
         self.arg_offset[-1] += self.sizeof(arg.type)
 
     def sizeof(self, type):
@@ -248,26 +248,14 @@ def gen_asm(tac):
 
 if __name__ == "__main__":
     source = """\
-    function f0(int f0_param_0, int f0_param_1)
+    function fib(int a)
     {
-        print(f0_param_0)
-        print(f0_param_1)
+        print(a)
     }
 
     function main()
     {
-        int b := 2
-        int a := 556
-        if(10)
-        {
-            int b := 123
-            if(10)
-            {
-                int b
-            }
-            f0(b * b, 10)
-            print(a)
-        }
+        print(fib(0))
     }
     """
 
