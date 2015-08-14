@@ -14,7 +14,7 @@ class Label(object):
         self.value = value
 
     def __str__(self):
-        return "L{}:".format(self.value)
+        return ".L{}:".format(self.value)
 
 class RenameTable(object):
     """ RenameTable is used to keep track of identifiers that should

@@ -118,7 +118,8 @@ def gen_Op(x, state):
     instructions = {
         "+" : "add eax,",
         "-" : "sub eax,",
-        "*" : "mul"
+        "*" : "mul"     ,
+        "<" : "cmp eax,"
     }
     instr = instructions[x.op]
 
@@ -139,7 +140,7 @@ def gen_Op(x, state):
     elif isinstance(x.rhs, ast.Literal):
         state.outl("mov ebx, {}", x.rhs)
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(x)
     state.outl("{} ebx", instr)
     state.pop("ebx")
 
@@ -169,9 +170,10 @@ def gen_JZ(x, state):
         offset = state.get_offset(x.var)
         state.outl("mov eax, [ebp + {}]", offset)
     else:
-        raise NotImplementedError()
+        reg = state.get_register(x)
+        state.outl("mov eax, {}", reg)
     state.outl("cmp eax, 0")
-    state.outl("jz L{}", x.label.value)
+    state.outl("jz .L{}", x.label.value)
 
 
 def output_print(state):
@@ -250,12 +252,19 @@ if __name__ == "__main__":
     source = """\
     function fib(int a) -> int
     {
-        print(a)
+        if(a < 2)
+        {
+            return 1
+        }
+        int t0 := fib(a - 1)
+        int t1 := fib(a - 2)
+        return t0 + t1
     }
 
     function main()
     {
         print(fib(0))
+        int a
     }
     """
 

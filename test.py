@@ -295,8 +295,10 @@ class TestRenameTable(unittest.TestCase):
 @ddt
 class TestSema(unittest.TestCase):
     def assertRaisesSemaError(self, data, errortype):
-        tree = parse(data)
         with self.assertRaises(errortype):
+            # Some semantic errors are found during the
+            # parse stage.
+            tree = parse(data)
             tree.sema()
     
     def test_undefined_variable(self):
@@ -340,6 +342,44 @@ class TestSema(unittest.TestCase):
         }
         """
         self.assertRaisesSemaError(data, SemaParamMismatchError)
+
+    def test_no_return_variable(self):
+        data = """\
+        function func_0() -> int
+        {
+            return
+        }
+        """
+        self.assertRaisesSemaError(data, SemaNoReturnValueError)
+
+    def test_returning_value_from_void(self):
+        data = """\
+        function func_0()
+        {
+            return 10
+        }
+        """
+        self.assertRaisesSemaError(data, SemaReturnValueFromVoidError)
+
+    def test_multiple_definitions(self):
+        data = """\
+        function func_0()
+        {
+            int a
+            int a
+        }
+        """
+        self.assertRaisesSemaError(data, SemaMultipleDeclarationError)
+
+    def test_calling_non_function(self):
+        data = """\
+        function func_0()
+        {
+            int a
+            a()
+        }
+        """
+        self.assertRaisesSemaError(data, SemaCallingNonFunctionError)
 
 if __name__ == "__main__":
     unittest.main()

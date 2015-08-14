@@ -21,16 +21,19 @@ class SemaData(object):
 
 class SemaError(RuntimeError):
     IDENTIFIER_UNDEFINED    = 0
-    IDENTIFIER_NOT_FUNCTION = 1
+    CALLING_NON_FUNCTION    = 1
     FUNCTION_PARAM_MISMATCH = 2
     FUNCTION_NOT_FOUND      = 3
+    NO_RETURN_VALUE         = 4
+    RETURN_VALUE_FROM_VOID  = 5
+    MULTIPLE_DECLARATIONS   = 6
     def __init__(self, message, errno):
         super(SemaError, self).__init__(message, errno)
 
 class SemaIdentifierUndefinedError(SemaError):
     pass
 
-class SemaIdentifierNotFunctionError(SemaError):
+class SemaCallingNonFunctionError(SemaError):
     pass
 
 class SemaParamMismatchError(SemaError):
@@ -38,6 +41,16 @@ class SemaParamMismatchError(SemaError):
 
 class SemaFunctionUndefinedError(SemaError):
     pass
+
+class SemaReturnValueFromVoidError(SemaError):
+    pass
+
+class SemaNoReturnValueError(SemaError):
+    pass
+
+class SemaMultipleDeclarationError(SemaError):
+    pass
+
 
 def semafunc(function):
     @functools.wraps(function)
@@ -255,6 +268,13 @@ class Return(AST):
         if self.statement:
             type0 = self.statement.sema(data)
             resolve_type(type0, data.ret_type)
+            if data.ret_type == ast.Type("void"):
+                msg = "Returning value from void function"
+                raise SemaReturnValueFromVoidError(msg, 5)
+        elif data.ret_type != ast.Type("void"):
+            #TODO: Improve the error message given.
+            msg = "No return value given"
+            raise SemaNoReturnValueError(msg, 4)
 
     def make_tac(self, state):
         if self.statement:
@@ -366,7 +386,7 @@ class FuncCall(AST):
             raise SemaFunctionUndefinedError(msg, 3)
         if not isinstance(function, Function):
             msg = "identifier {} is not a function".format(function)
-            raise SemaIdentifierNotFunctionError(msg, 1)
+            raise SemaCallingNonFunctionError(msg, 1)
         if len(function.params) != len(self.params):
             raise SemaParamMismatchError(
                       "number of arguments to function does not match",
@@ -558,7 +578,12 @@ class Decl(AST):
         self.var.make_tables(table)
         if self.expr:
             self.expr.make_tables(table)
-        table[self.var] = self.type
+        try:
+            table[self.var] = self.type
+        except KeyError:
+            #TODO: Add a better error message
+            msg = ""
+            raise SemaMultipleDeclarationError(msg, 6)
 
     @semafunc
     def sema(self, data):

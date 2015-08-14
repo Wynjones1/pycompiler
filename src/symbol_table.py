@@ -33,8 +33,8 @@ class SymbolTable(object):
     def __setitem__(self, key, value):
         assert(isinstance(value, (ast.Function, ast.Type)))
         assert(isinstance(key, ast.Identifier))
-        if value in self.data:
-            raise InvalidParse("identifier {} already defined in this scope".format(value))
+        if key in self.data.keys():
+            raise KeyError()
         self.data[key] = value
 
     def set_parent(self, parent):
