@@ -193,9 +193,9 @@ class Function(AST):
 
     def make_tac(self, state):
         out = [tac.StartFunc(self.name, self.symbol_table)]
-        out += self.params.make_tac(state)
-        state.decl_list = set()
         with state.rename_table.scope():
+            out += self.params.make_tac(state)
+            state.decl_list = set()
             temp = [tac.EndDecls()]
             temp += self.statements.make_tac(state)
             temp.append(tac.EndFunc(self.name))
@@ -203,30 +203,44 @@ class Function(AST):
         
 
 class If(AST):
-    def __init__(self, cond, statements):
+    def __init__(self, cond, success, failure):
         super(If, self).__init__()
-        self.cond = cond
-        self.statements = statements
+        self.cond    = cond
+        self.success = success
+        self.failure = failure
 
     def make_graph(self, graph):
         node0 = make_node("if", graph)
         node1 = self.cond.make_graph(graph)
         add_edge(graph, node0, node1, "cond")
-        for s in self.statements:
+        node2 = make_node("success", graph)
+        node3 = make_node("fail", graph)
+        add_edge(graph, node0, node2)
+        add_edge(graph, node0, node3)
+        for s in self.success:
             node1 = s.make_graph(graph)
-            add_edge(graph, node0, node1)
+            add_edge(graph, node2, node1)
+
+        if self.failure:
+            for s in self.failure:
+                node1 = s.make_graph(graph)
+                add_edge(graph, node3, node1)
         return node0
 
     def make_tables(self, table):
         self.symbol_table = table
         self.cond.make_tables(table)
-        self.statements.make_tables(SubTable(self.symbol_table))
+        self.success.make_tables(SubTable(self.symbol_table))
+        if self.failure:
+            self.failure.make_tables(SubTable(self.symbol_table))
 
     @semafunc
     def sema(self, data):
         type0 = self.cond.sema(data)
         resolve_type(type0, "int")
-        self.statements.sema(data)
+        self.success.sema(data)
+        if self.failure:
+            self.failure.sema(data)
 
     def make_tac(self, state):
         """
@@ -235,15 +249,30 @@ class If(AST):
                 S0
                 ...
                 SN
+                JP L1
             L0:
+                F0
+                ...
+                FN
+            L1:
         """
         out = []
         l0 = state.make_label()
         out += self.cond.make_tac(state)
         out.append(tac.JZ(l0, state.last_var()))
         with state.rename_table.scope():
-            out += self.statements.make_tac(state)
+            out += self.success.make_tac(state)
+
+        if self.failure:
+            l1 = state.make_label()
+            out.append(tac.JP(l1))
+
         out.append(l0)
+
+        if self.failure:
+            with state.rename_table.scope():
+                out += self.failure.make_tac(state)
+            out.append(l1)
         return out
 
 class Return(AST):
@@ -337,10 +366,23 @@ class Op(Binop): pass
 class Comp(Binop): pass
 class Assign(Binop):    
     def make_tac(self, state):
-        out = self.rhs.make_tac(state)
-        rhs_temp = state.last_var()
-        out += self.lhs.make_tac(state)
-        out.append(tac.Assign(state.last_var(), rhs_temp))
+        out = []
+        if self.optype == ":=":
+            out += self.rhs.make_tac(state)
+            rhs_temp = state.last_var()
+            out += self.lhs.make_tac(state)
+            out.append(tac.Assign(state.last_var(), rhs_temp))
+        else:
+            mapping = {"-=" : "-", "+=" : "+"}
+            op = mapping[self.optype]
+
+            out += self.rhs.make_tac(state)
+            t0 = state.last_var()
+
+            out += self.lhs.make_tac(state)
+            t1 = state.last_var()
+            out.append(tac.Op(op,state.last_var(), t1, t0))
+            out += self.lhs.make_tac(state)
         return out
 
 class Import(AST):
@@ -402,7 +444,7 @@ class FuncCall(AST):
         for p in self.params[::-1]:
             out += p.make_tac(state)
             out.append(tac.Param(state.last_var()))
-        out.append(tac.FuncCall(name))
+        out.append(tac.FuncCall(name, state.make_temp()))
         return out
 
 class Type(AST):
@@ -413,7 +455,7 @@ class Type(AST):
         elif isinstance(identifier, Identifier):
             self.identifier = identifier
         else:
-            raise Exception("Type must be Identifier for str")
+            raise Exception("Type must be Identifier or str")
 
     def make_graph(self, graph):
         return self.identifier.make_graph(graph)
@@ -464,6 +506,7 @@ class For(AST):
             self.invariant.make_tables(self.symbol_table)
         if self.post:
             self.post.make_tables(self.symbol_table)
+        self.statements.make_tables(self.symbol_table)
 
     @semafunc
     def sema(self, data):
@@ -493,18 +536,19 @@ class For(AST):
         l0 = state.make_label()
         l1 = state.make_label()
         out = []
-        if self.decl:
-            out += self.decl.make_tac(state)
-        out.append(tac.JP(l1))
-        out.append(l0)
         with state.rename_table.scope():
-            out += self.statements.make_tac(state)
-        if self.post:
-            out += self.post.make_tac(state)
-        out.append(l1)
-        if self.invariant:
-            out += self.invariant.make_tac(state)
-        out.append(tac.JNZ(l0, state.last_var()))
+            if self.decl:
+                out += self.decl.make_tac(state)
+            out.append(tac.JP(l1))
+            out.append(l0)
+            with state.rename_table.scope():
+                out += self.statements.make_tac(state)
+            if self.post:
+                out += self.post.make_tac(state)
+            out.append(l1)
+            if self.invariant:
+                out += self.invariant.make_tac(state)
+            out.append(tac.JNZ(l0, state.last_var()))
         return out
 
 class While(AST):

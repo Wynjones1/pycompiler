@@ -179,6 +179,10 @@ class TestParser(unittest.TestCase):
         data = ["if(a < 10){}"]
         self._test_generic(data, parse_if, ast.If)
 
+    def test_if_else(self):
+        data = ["if(a < 10){}else{}"]
+        self._test_generic(data, parse_if, ast.If)
+
     def test_return(self):  
         data = ["return", "return 10", "return a", "return (1 + 2)"]
         self._test_generic(data, parse_return, ast.Return)
@@ -207,7 +211,15 @@ class TestParserFail(unittest.TestCase):
         self._test_fail(parse_identifier, data)
 
 class TestTAC(unittest.TestCase):
-    pass
+    def test_two_funcs_same_param_name(self):
+        data = """\
+        function f0(int a)
+        {}
+        function f1(int a)
+        {}
+        """
+        tree = parse(data)
+        tree.make_tac(TacState())
 
 class TestAST(unittest.TestCase):
     def test_ast_identifier_equals(self):
@@ -292,8 +304,52 @@ class TestRenameTable(unittest.TestCase):
         self.table.add(Identifier("a"))
         self.assertEqual(self.table[Identifier("a")], Identifier("a''"))
 
-@ddt
 class TestSema(unittest.TestCase):
+    def test_function_call(self):
+        data = """\
+        function test_0(int a)
+        {
+            print(a)
+        }
+
+        function main()
+        {
+            test_0(10)
+        }
+        """
+
+        tree = parse(data)
+        tree.sema()
+
+    def test_function_call_as_parameter(self):
+        data = """\
+        function test_0(int a) -> int
+        {
+            return a
+        }
+
+        function main()
+        {
+            print(test_0(10))
+        }
+        """
+        tree = parse(data)
+        tree.sema()
+
+    def test_for_loop(self):
+        data = """\
+        function test_0()
+        {
+            for(int i := 0; i < 10; i += 1)
+            {
+                print(i)
+            }
+        }
+        """
+        tree = parse(data)
+        tree.sema()
+@ddt
+class TestSemaErrors(unittest.TestCase):
     def assertRaisesSemaError(self, data, errortype):
         with self.assertRaises(errortype):
             # Some semantic errors are found during the

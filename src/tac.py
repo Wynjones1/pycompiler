@@ -1,6 +1,7 @@
 #!/usr/bin/env python2.7
 import os
 from parse import *
+import syntax_tree as ast
 
 class TempVar(object):
     def __init__(self, value):
@@ -8,6 +9,17 @@ class TempVar(object):
 
     def __str__(self):
         return "_t{}".format(self.value)
+
+    def __eq__(self, other):
+        if isinstance(other, TempVar):
+            return self.value == other.value
+        return False
+
+    def __hash__(self):
+        return self.value.__hash__()
+
+    def __repr__(self):
+        return "TempVar<{}>".format(self.value)
 
 class Label(object):
     def __init__(self, value):
@@ -78,7 +90,10 @@ class TacState(object):
     def make_temp(self):
         out = self.temp_count
         self.temp_count += 1
-        self._last_var = TempVar(out)
+        id0 = ast.Identifier("_t{}".format(self.temp_count))
+        self._last_var = id0
+        #TODO: Cleanup the handling of this.
+        self.decl_list.add(Decl(id0 , ast.Type("int")))
         return self._last_var
 
     def make_label(self):
@@ -99,11 +114,15 @@ class Argument(TAC):
         return "arg {} {}".format(self.type, self.identifier)
 
 class FuncCall(TAC):
-    def __init__(self, identifier):
+    def __init__(self, identifier, retval = None):
         self.identifier = identifier
+        self.retval     = retval
 
     def __str__(self):
-        return "CALL {}".format(self.identifier)
+        if self.retval:
+            return "{} = CALL {}".format(self.retval, self.identifier)
+        else:
+            return "CALL {}".format(self.identifier)
 
 class Param(TAC):
     def __init__(self, value):
@@ -133,7 +152,7 @@ class Assign(TAC):
         self.var        = var
 
     def __str__(self):
-        return ":= {} {}".format(self.identifier, self.var)
+        return "{} := {}".format(self.identifier, self.var)
 
 class Op(TAC):
     def __init__(self, op, assign, lhs, rhs):
@@ -143,8 +162,7 @@ class Op(TAC):
         self.rhs    = rhs
 
     def __str__(self):
-        return "{} {} {} {}".format(self.op, self.assign,
-                                    self.lhs, self.rhs)
+        return "{} := {} {} {}".format( self.assign, self.lhs, self.op, self.rhs)
 
 class Return(TAC):
     def __init__(self, value):

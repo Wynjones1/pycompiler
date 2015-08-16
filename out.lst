@@ -2,144 +2,234 @@
      2                                  section .data
      3                                  section .bss
      4 00000000 <res 00000020>          str0: resb 0x20
-     5                                  _stack_start:
-     6 00000020 <res 0000FFFF>          	resb 0xffff
-     7                                  _stack_end:
-     8                                  section .text
-     9                                  	global _start
-    10                                  _start:
-    11 00000000 BC[20000000]            	mov esp, _stack_start
-    12 00000005 89E5                    	mov ebp, esp
-    13 00000007 E867000000              	call main
-    14 0000000C BB00000000              	mov ebx, 0
-    15 00000011 B801000000              	mov eax, 1
-    16 00000016 CD80                    	int 0x80
-    17                                  ;------------------------------------| startfunc fib
-    18                                  fib:
-    19 00000018 55                      	push ebp
-    20 00000019 89E5                    	mov ebp, esp
-    21                                  ;------------------------------------| arg int a
-    22                                  ;------------------------------------| decl t0 int
-    23                                  ;------------------------------------| decl t1 int
+     5                                  section .text
+     6                                  	global _start
+     7                                  _start:
+     8 00000000 89E5                    	mov ebp, esp
+     9 00000002 E8E4000000              	call main
+    10 00000007 BB00000000              	mov ebx, 0
+    11 0000000C B801000000              	mov eax, 1
+    12 00000011 CD80                    	int 0x80
+    13                                  ;------------------------------------| startfunc fib
+    14                                  fib:
+    15 00000013 55                      	push ebp
+    16 00000014 89E5                    	mov ebp, esp
+    17                                  ;------------------------------------| arg int a
+    18                                  ;------------------------------------| decl _t2 int
+    19                                  ;------------------------------------| decl _t1 int
+    20                                  ;------------------------------------| decl _t3 int
+    21                                  ;------------------------------------| decl _t5 int
+    22                                  ;------------------------------------| decl _t4 int
+    23                                  ;------------------------------------| decl _t6 int
     24                                  ;------------------------------------| end_decls
-    25 0000001B 83EC08                  	sub esp, 8
-    26                                  ;------------------------------------| < _t0 a 2
-    27 0000001E 8B4508                  	mov eax, [ebp + 8]
-    28 00000021 50                      	push eax
-    29 00000022 BB02000000              	mov ebx, 2
-    30 00000027 39D8                    	cmp eax, ebx
-    31 00000029 5B                      	pop ebx
-    32                                  ;------------------------------------| JZ .L0: _t0
-    33 0000002A 89C0                    	mov eax, eax
-    34 0000002C 83F800                  	cmp eax, 0
-    35 0000002F 7402                    	jz .L0
-    36                                  ;------------------------------------| return 1
-    37 00000031 7A3C                    	jp .end
-    38                                  ;------------------------------------| .L0:
-    39                                  .L0:
-    40                                  ;------------------------------------| - _t1 a 1
-    41 00000033 8B4508                  	mov eax, [ebp + 8]
-    42 00000036 50                      	push eax
-    43 00000037 BB01000000              	mov ebx, 1
-    44 0000003C 29D8                    	sub eax, ebx
-    45 0000003E 5B                      	pop ebx
-    46                                  ;------------------------------------| param _t1
-    47 0000003F 50                      	push eax
-    48                                  ;------------------------------------| CALL fib
-    49 00000040 E8D3FFFFFF              	call fib
-    50 00000045 83C404                  	add esp, 4
-    51                                  ;------------------------------------| := t0 _t1
-    52 00000048 8945FC                  	mov [ebp + -4], eax
-    53                                  ;------------------------------------| - _t2 a 2
-    54 0000004B 8B4508                  	mov eax, [ebp + 8]
-    55 0000004E 50                      	push eax
-    56 0000004F BB02000000              	mov ebx, 2
-    57 00000054 29D8                    	sub eax, ebx
-    58 00000056 5B                      	pop ebx
-    59                                  ;------------------------------------| param _t2
-    60 00000057 50                      	push eax
-    61                                  ;------------------------------------| CALL fib
-    62 00000058 E8BBFFFFFF              	call fib
-    63 0000005D 83C404                  	add esp, 4
-    64                                  ;------------------------------------| := t1 _t2
-    65 00000060 8945F8                  	mov [ebp + -8], eax
-    66                                  ;------------------------------------| + _t3 t0 t1
-    67 00000063 8B45FC                  	mov eax, [ebp + -4]
-    68 00000066 50                      	push eax
-    69 00000067 8B5DF8                  	mov ebx, [ebp + -8]
-    70 0000006A 01D8                    	add eax, ebx
-    71 0000006C 5B                      	pop ebx
-    72                                  ;------------------------------------| return _t3
-    73 0000006D 7A00                    	jp .end
-    74                                  ;------------------------------------| endfunc fib
-    75                                  .end:
-    76 0000006F 89EC                    	mov esp, ebp
-    77 00000071 5D                      	pop ebp
-    78 00000072 C3                      	ret
-    79                                  ;------------------------------------| startfunc main
-    80                                  main:
-    81 00000073 55                      	push ebp
-    82 00000074 89E5                    	mov ebp, esp
-    83                                  ;------------------------------------| decl a' int
-    84                                  ;------------------------------------| end_decls
-    85 00000076 83EC04                  	sub esp, 4
-    86                                  ;------------------------------------| param 0
-    87 00000079 6A00                    	push 0
-    88                                  ;------------------------------------| CALL fib
-    89 0000007B E898FFFFFF              	call fib
-    90 00000080 83C404                  	add esp, 4
-    91                                  ;------------------------------------| param 0
-    92 00000083 6A00                    	push 0
-    93                                  ;------------------------------------| CALL print
-    94 00000085 E807000000              	call print
-    95 0000008A 83C404                  	add esp, 4
-    96                                  ;------------------------------------| endfunc main
-    97                                  .end:
-    98 0000008D 89EC                    	mov esp, ebp
-    99 0000008F 5D                      	pop ebp
-   100 00000090 C3                      	ret
-   101                                  	%include "src/stdlib.asm"
-   102                              <1> %define ASCII_A       0x41
-   103                              <1> %define ASCII_0       0x30
-   104                              <1> %define ASCII_NEWLINE 0xa
-   105                              <1> %define BUFSIZE 10
-   106                              <1> ; print the integer pointed to by the first argument
-   107                              <1> print:
-   108 00000091 55                  <1>     push ebp
-   109 00000092 89E5                <1>         mov ebp, esp
-   110 00000094 8B4508              <1>         mov eax, [ebp + 8]
-   111 00000097 BB0A000000          <1>         mov ebx, 10
-   112 0000009C B900000000          <1>         mov ecx, 0
-   113 000000A1 83EC0A              <1>         sub esp, BUFSIZE; reserve space for the integer
-   114                              <1> 
-   115 000000A4 BE09000000          <1>         mov esi, BUFSIZE - 1
-   116 000000A9 29CE                <1>         sub esi, ecx
-   117 000000AB C645FF0A            <1>         mov byte [ebp - 1], ASCII_NEWLINE
-   118 000000AF 83C101              <1>         add ecx, 1         ; adjust length
-   119                              <1> 
-   120                              <1> .loop:
-   121                              <1>         ; push character on the stack
-   122                              <1>         ; store length in ecx
-   123                              <1> 
-   124 000000B2 BA00000000          <1>         mov edx, 0       ; zero upper bits of EDX:EAX
-   125 000000B7 F7F3                <1>         div ebx          ; divide by 10
-   126 000000B9 83C230              <1>         add edx, ASCII_0 ; adjust to ascii
-   127                              <1> 
-   128 000000BC BE09000000          <1>         mov esi, BUFSIZE - 1
-   129 000000C1 29CE                <1>         sub esi, ecx
-   130 000000C3 881434              <1>         mov [esp + esi], dl; store in the buffer
-   131                              <1> 
-   132 000000C6 83C101              <1>         add ecx, 1       ; adjust length
-   133 000000C9 83F800              <1>         cmp eax, 0       ; see if we are done
-   134 000000CC 75E4                <1>         jnz .loop
-   135                              <1> 
-   136                              <1> 
-   137 000000CE B804000000          <1>         mov eax, 4   ; write syscall
-   138 000000D3 BB00000000          <1>         mov ebx, 0   ; stdout fd
-   139 000000D8 89CA                <1>         mov edx, ecx ; length of string
-   140 000000DA 89E9                <1>         mov ecx, ebp
-   141 000000DC 29D1                <1>         sub ecx, edx ; location of output string
-   142 000000DE CD80                <1>         int 0x80
-   143 000000E0 89EC                <1>         mov esp, ebp
-   144 000000E2 5D                  <1>     pop ebp
-   145 000000E3 C3                  <1>     ret
+    25 00000016 83EC18                  	sub esp, 24
+    26                                  ;------------------------------------| _t1 := a < 2
+    27 00000019 B901000000              	mov ecx, 1
+    28 0000001E 8B4508                  	mov eax, [ebp + 8]
+    29 00000021 BB02000000              	mov ebx, 2
+    30 00000026 39D8                    	cmp eax, ebx
+    31 00000028 7C05                    	jl .L_0
+    32 0000002A B900000000              	mov ecx, 0
+    33                                  .L_0:
+    34 0000002F 894DF8                  	mov dword [ebp + -8], ecx
+    35                                  ;------------------------------------| JZ .L0: _t1
+    36 00000032 8B45F8                  	mov eax, [ebp + -8]
+    37 00000035 83F800                  	cmp eax, 0
+    38 00000038 7407                    	jz .L0
+    39                                  ;------------------------------------| return 1
+    40 0000003A B801000000              	mov eax, 1
+    41 0000003F EB48                    	jmp .end
+    42                                  ;------------------------------------| .L0:
+    43                                  .L0:
+    44                                  ;------------------------------------| _t2 := a - 1
+    45 00000041 8B4508                  	mov eax, [ebp + 8]
+    46 00000044 BB01000000              	mov ebx, 1
+    47 00000049 29D8                    	sub eax, ebx
+    48 0000004B 8945FC                  	mov [ebp + -4], eax
+    49                                  ;------------------------------------| param _t2
+    50 0000004E 8B45FC                  	mov eax, [ebp + -4]
+    51 00000051 50                      	push eax
+    52                                  ;------------------------------------| _t3 = CALL fib
+    53 00000052 E8BCFFFFFF              	call fib
+    54 00000057 8945F4                  	mov dword [ebp + -12], eax
+    55 0000005A 83C404                  	add esp, 4
+    56                                  ;------------------------------------| _t4 := a - 2
+    57 0000005D 8B4508                  	mov eax, [ebp + 8]
+    58 00000060 BB02000000              	mov ebx, 2
+    59 00000065 29D8                    	sub eax, ebx
+    60 00000067 8945EC                  	mov [ebp + -20], eax
+    61                                  ;------------------------------------| param _t4
+    62 0000006A 8B45EC                  	mov eax, [ebp + -20]
+    63 0000006D 50                      	push eax
+    64                                  ;------------------------------------| _t5 = CALL fib
+    65 0000006E E8A0FFFFFF              	call fib
+    66 00000073 8945F0                  	mov dword [ebp + -16], eax
+    67 00000076 83C404                  	add esp, 4
+    68                                  ;------------------------------------| _t6 := _t3 + _t5
+    69 00000079 8B45F4                  	mov eax, [ebp + -12]
+    70 0000007C 8B5DF0                  	mov ebx, [ebp + -16]
+    71 0000007F 01D8                    	add eax, ebx
+    72 00000081 8945E8                  	mov [ebp + -24], eax
+    73                                  ;------------------------------------| return _t6
+    74 00000084 8B45E8                  	mov eax, [ebp + -24]
+    75 00000087 EB00                    	jmp .end
+    76                                  ;------------------------------------| endfunc fib
+    77                                  .end:
+    78 00000089 89EC                    	mov esp, ebp
+    79 0000008B 5D                      	pop ebp
+    80 0000008C C3                      	ret
+    81                                  ;------------------------------------| startfunc factorial
+    82                                  factorial:
+    83 0000008D 55                      	push ebp
+    84 0000008E 89E5                    	mov ebp, esp
+    85                                  ;------------------------------------| arg int a
+    86                                  ;------------------------------------| decl _t9 int
+    87                                  ;------------------------------------| decl _t8 int
+    88                                  ;------------------------------------| decl _t10 int
+    89                                  ;------------------------------------| decl _t7 int
+    90                                  ;------------------------------------| end_decls
+    91 00000090 83EC10                  	sub esp, 16
+    92                                  ;------------------------------------| _t7 := a < 2
+    93 00000093 B901000000              	mov ecx, 1
+    94 00000098 8B4508                  	mov eax, [ebp + 8]
+    95 0000009B BB02000000              	mov ebx, 2
+    96 000000A0 39D8                    	cmp eax, ebx
+    97 000000A2 7C05                    	jl .L_1
+    98 000000A4 B900000000              	mov ecx, 0
+    99                                  .L_1:
+   100 000000A9 894DF0                  	mov dword [ebp + -16], ecx
+   101                                  ;------------------------------------| JZ .L1: _t7
+   102 000000AC 8B45F0                  	mov eax, [ebp + -16]
+   103 000000AF 83F800                  	cmp eax, 0
+   104 000000B2 7407                    	jz .L1
+   105                                  ;------------------------------------| return 1
+   106 000000B4 B801000000              	mov eax, 1
+   107 000000B9 EB2C                    	jmp .end
+   108                                  ;------------------------------------| .L1:
+   109                                  .L1:
+   110                                  ;------------------------------------| _t8 := a - 1
+   111 000000BB 8B4508                  	mov eax, [ebp + 8]
+   112 000000BE BB01000000              	mov ebx, 1
+   113 000000C3 29D8                    	sub eax, ebx
+   114 000000C5 8945F8                  	mov [ebp + -8], eax
+   115                                  ;------------------------------------| param _t8
+   116 000000C8 8B45F8                  	mov eax, [ebp + -8]
+   117 000000CB 50                      	push eax
+   118                                  ;------------------------------------| _t9 = CALL factorial
+   119 000000CC E8BCFFFFFF              	call factorial
+   120 000000D1 8945FC                  	mov dword [ebp + -4], eax
+   121 000000D4 83C404                  	add esp, 4
+   122                                  ;------------------------------------| _t10 := a * _t9
+   123 000000D7 8B4508                  	mov eax, [ebp + 8]
+   124 000000DA 8B5DFC                  	mov ebx, [ebp + -4]
+   125 000000DD F7E3                    	mul ebx
+   126 000000DF 8945F4                  	mov [ebp + -12], eax
+   127                                  ;------------------------------------| return _t10
+   128 000000E2 8B45F4                  	mov eax, [ebp + -12]
+   129 000000E5 EB00                    	jmp .end
+   130                                  ;------------------------------------| endfunc factorial
+   131                                  .end:
+   132 000000E7 89EC                    	mov esp, ebp
+   133 000000E9 5D                      	pop ebp
+   134 000000EA C3                      	ret
+   135                                  ;------------------------------------| startfunc main
+   136                                  main:
+   137 000000EB 55                      	push ebp
+   138 000000EC 89E5                    	mov ebp, esp
+   139                                  ;------------------------------------| decl i int
+   140                                  ;------------------------------------| decl _t11 int
+   141                                  ;------------------------------------| decl _t13 int
+   142                                  ;------------------------------------| decl _t12 int
+   143                                  ;------------------------------------| end_decls
+   144 000000EE 83EC10                  	sub esp, 16
+   145                                  ;------------------------------------| i := 0
+   146 000000F1 B800000000              	mov eax, 0
+   147 000000F6 8945FC                  	mov dword [ebp + -4], eax
+   148                                  ;------------------------------------| JP .L3:
+   149 000000F9 EB2B                    	jmp .L3
+   150                                  ;------------------------------------| .L2:
+   151                                  .L2:
+   152                                  ;------------------------------------| param i
+   153 000000FB 8B45FC                  	mov eax, [ebp + -4]
+   154 000000FE 50                      	push eax
+   155                                  ;------------------------------------| _t11 = CALL factorial
+   156 000000FF E889FFFFFF              	call factorial
+   157 00000104 8945F8                  	mov dword [ebp + -8], eax
+   158 00000107 83C404                  	add esp, 4
+   159                                  ;------------------------------------| param _t11
+   160 0000010A 8B45F8                  	mov eax, [ebp + -8]
+   161 0000010D 50                      	push eax
+   162                                  ;------------------------------------| _t12 = CALL print
+   163 0000010E E838000000              	call print
+   164 00000113 8945F0                  	mov dword [ebp + -16], eax
+   165 00000116 83C404                  	add esp, 4
+   166                                  ;------------------------------------| i := i + 1
+   167 00000119 8B45FC                  	mov eax, [ebp + -4]
+   168 0000011C BB01000000              	mov ebx, 1
+   169 00000121 01D8                    	add eax, ebx
+   170 00000123 8945FC                  	mov [ebp + -4], eax
+   171                                  ;------------------------------------| .L3:
+   172                                  .L3:
+   173                                  ;------------------------------------| _t13 := i < 50
+   174 00000126 B901000000              	mov ecx, 1
+   175 0000012B 8B45FC                  	mov eax, [ebp + -4]
+   176 0000012E BB32000000              	mov ebx, 50
+   177 00000133 39D8                    	cmp eax, ebx
+   178 00000135 7C05                    	jl .L_2
+   179 00000137 B900000000              	mov ecx, 0
+   180                                  .L_2:
+   181 0000013C 894DF4                  	mov dword [ebp + -12], ecx
+   182                                  ;------------------------------------| JNZ .L2: _t13
+   183 0000013F 8B45F4                  	mov eax, [ebp + -12]
+   184 00000142 83F800                  	cmp eax, 0
+   185 00000145 75B4                    	jnz .L2
+   186                                  ;------------------------------------| endfunc main
+   187                                  .end:
+   188 00000147 89EC                    	mov esp, ebp
+   189 00000149 5D                      	pop ebp
+   190 0000014A C3                      	ret
+   191                                  	%include "src/stdlib.asm"
+   192                              <1> %define ASCII_A       0x41
+   193                              <1> %define ASCII_0       0x30
+   194                              <1> %define ASCII_NEWLINE 0xa
+   195                              <1> %define BUFSIZE 10
+   196                              <1> ; print the integer pointed to by the first argument
+   197                              <1> print:
+   198 0000014B 55                  <1>     push ebp
+   199 0000014C 89E5                <1>         mov ebp, esp
+   200 0000014E 8B4508              <1>         mov eax, [ebp + 8]
+   201 00000151 BB0A000000          <1>         mov ebx, 10
+   202 00000156 B900000000          <1>         mov ecx, 0
+   203 0000015B 83EC0A              <1>         sub esp, BUFSIZE; reserve space for the integer
+   204                              <1> 
+   205 0000015E BE09000000          <1>         mov esi, BUFSIZE - 1
+   206 00000163 29CE                <1>         sub esi, ecx
+   207 00000165 C645FF0A            <1>         mov byte [ebp - 1], ASCII_NEWLINE
+   208 00000169 83C101              <1>         add ecx, 1         ; adjust length
+   209                              <1> 
+   210                              <1> .loop:
+   211                              <1>         ; push character on the stack
+   212                              <1>         ; store length in ecx
+   213                              <1> 
+   214 0000016C BA00000000          <1>         mov edx, 0       ; zero upper bits of EDX:EAX
+   215 00000171 F7F3                <1>         div ebx          ; divide by 10
+   216 00000173 83C230              <1>         add edx, ASCII_0 ; adjust to ascii
+   217                              <1> 
+   218 00000176 BE09000000          <1>         mov esi, BUFSIZE - 1
+   219 0000017B 29CE                <1>         sub esi, ecx
+   220 0000017D 881434              <1>         mov [esp + esi], dl; store in the buffer
+   221                              <1> 
+   222 00000180 83C101              <1>         add ecx, 1       ; adjust length
+   223 00000183 83F800              <1>         cmp eax, 0       ; see if we are done
+   224 00000186 75E4                <1>         jnz .loop
+   225                              <1> 
+   226                              <1> 
+   227 00000188 B804000000          <1>         mov eax, 4   ; write syscall
+   228 0000018D BB00000000          <1>         mov ebx, 0   ; stdout fd
+   229 00000192 89CA                <1>         mov edx, ecx ; length of string
+   230 00000194 89E9                <1>         mov ecx, ebp
+   231 00000196 29D1                <1>         sub ecx, edx ; location of output string
+   232 00000198 CD80                <1>         int 0x80
+   233 0000019A 89EC                <1>         mov esp, ebp
+   234 0000019C 5D                  <1>     pop ebp
+   235 0000019D C3                  <1>     ret

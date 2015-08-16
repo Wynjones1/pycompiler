@@ -181,9 +181,20 @@ def parse_if(parser):
         parser.consume("\n")
         parser.accept("{")
         parser.consume("\n")
-        statements = parse_statement_list(parser)
+        success = parse_statement_list(parser)
         parser.accept("}")
-        return ast.If(cond = cond, statements = statements)
+        parser.consume("\n")
+        if parser.peek("else"):
+            parser.next()
+            parser.consume("\n")
+            parser.accept("{")
+            parser.consume("\n")
+            failure = parse_statement_list(parser)
+            parser.accept("}")
+            parser.consume("\n")
+        else:
+            failure = None
+        return ast.If(cond = cond, success = success, failure = failure)
     except InvalidParse as e:
         raise ParseError("", parser.cur()), None, sys.exc_info()[2]
 

@@ -13,6 +13,7 @@ class CodeGenState(object):
         self.decls        = [{}]
         self.param_offset = [0]
         self.arg_offset   = [0]
+        self.label_count  = 0
 
     def new_frame(self):
         self.decls.append({})
@@ -42,16 +43,24 @@ class CodeGenState(object):
     def out(self, line, *args, **kwargs):
         self.output.append(str(line).format(*args, **kwargs))
 
-    def load(self, var, register):
-        pass
+    def load(self, register, var):
+        if isinstance(var, (ast.Literal, str)):
+            self.outl("mov {}, {}", register, var)
+        elif isinstance(var, ast.Identifier):
+            self.outl("mov {}, [ebp + {}]",register, self.get_offset(var))
+
+    def store(self, loc, val):
+        offset0 = self.get_offset(loc)
+        if isinstance(val, ast.Literal):
+            self.outl("mov dword [ebp + {}], {}", offset, val)
+        elif isinstance(val, ast.Identifier):
+            self.load("eax", val)
+            self.outl("mov dword [ebp + {}], eax", offset0)
+        elif isinstance(val, str):
+            self.outl("mov dword [ebp + {}], {}", offset0, val)
 
     def get_offset(self, identifier):
         return self.decls[-1][identifier]
-
-    def get_register(self, temp):
-        """ returns the current location of temp in registers
-        """
-        return "eax"
 
     def push(self, register):
         self.pos += 4
@@ -79,6 +88,11 @@ class CodeGenState(object):
         self.outl("mov esp, ebp")
         self.outl("pop ebp")
         self.pos = self.pos_stack.pop()
+
+    def make_label(self):
+        t = self.label_count
+        self.label_count += 1
+        return t
         
 
 def gen_StartFunc(x, state):
@@ -94,18 +108,13 @@ def gen_EndDecls(x, state):
 
 def gen_FuncCall(x, state):
     state.outl("call {}", x.identifier)
+    state.store(x.retval, "eax")
     state.sub_stack(state.param_count)
     state.param_count = 0
 
 def gen_Param(x, state):
-    if isinstance(x.value, ast.Literal):
-        state.push(x.value)
-    elif isinstance(x.value, ast.Identifier):
-        offset = state.get_offset(x.value)
-        state.outl("mov eax, [ebp + {}]", offset)
-        state.push("eax")
-    else:
-        state.push(state.get_register(x.value))
+    state.load("eax", x.value)
+    state.push("eax")
     state.param_count += 4
 
 def gen_Argument(x, state):
@@ -115,6 +124,10 @@ def gen_Op(x, state):
     """
         <op> <result> <lhs> <rhs>
     """
+    cmp_list = ["<", ">", "<=", ">=", "=="]
+
+    if x.op in cmp_list:
+        return gen_CMP(x, state)
     instructions = {
         "+" : "add eax,",
         "-" : "sub eax,",
@@ -123,36 +136,34 @@ def gen_Op(x, state):
     }
     instr = instructions[x.op]
 
-    # load the lhs into eax
-    if isinstance(x.lhs, ast.Identifier):
-        offset = state.get_offset(x.lhs)
-        state.outl("mov eax, [ebp + {}]", offset)
-    elif isinstance(x.lhs, ast.Literal):
-        state.outl("mov eax, {}", x.lhs)
-    else:
-        pass
+    state.load("eax", x.lhs)
+    state.load("ebx", x.rhs)
 
-    # load the rhs into ebx
-    state.push("eax")
-    if isinstance(x.rhs, ast.Identifier):
-        offset = state.get_offset(x.rhs)
-        state.outl("mov ebx, [ebp + {}]", offset)
-    elif isinstance(x.rhs, ast.Literal):
-        state.outl("mov ebx, {}", x.rhs)
-    else:
-        raise NotImplementedError(x)
     state.outl("{} ebx", instr)
-    state.pop("ebx")
+    state.outl("mov [ebp + {}], eax",  state.get_offset(x.assign))
+
+def gen_CMP(x, state):
+    state.load("ecx", "1")
+    state.load("eax", x.lhs)
+    state.load("ebx", x.rhs)
+    state.outl("cmp eax, ebx")
+    label = state.make_label()
+    jump_table = { "<"  : "jl",
+                   ">"  : "jg",
+                   "<=" : "jle",
+                   ">=" : "jge",
+                   "==" : "je",
+                   "!=" : "jne"}
+    state.outl("{} .L_{}", jump_table[x.op], label)
+    state.load("ecx", "0")
+    state.out(".L_{}:", label)
+    state.store(x.assign, "ecx")
+    pass
 
 def gen_Assign(x, state):
     offset = state.get_offset(x.identifier)
-    if isinstance(x.var, ast.Literal):
-        state.outl("mov dword [ebp + {}], {}", offset, x.var)
-    elif isinstance(x.var, ast.Identifier):
-        raise NotImplementedError()
-    else:
-        register = state.get_register(x.var)
-        state.outl("mov [ebp + {}], {}", offset, register)
+    state.load("eax", x.var)
+    state.store(x.identifier, "eax")
 
 def gen_EndFunc(x, state):
     state.out(".end:")
@@ -161,19 +172,22 @@ def gen_EndFunc(x, state):
     state.delete_frame()
 
 def gen_Return(x, state):
-    state.outl("jp .end")
+    if x.value:
+        state.load("eax", x.value)
+    state.outl("jmp .end")
 
 def gen_JZ(x, state):
-    if isinstance(x.var, ast.Literal):
-        state.outl("mov eax, {}", x.var.value)
-    elif isinstance(x.var, ast.Identifier):
-        offset = state.get_offset(x.var)
-        state.outl("mov eax, [ebp + {}]", offset)
-    else:
-        reg = state.get_register(x)
-        state.outl("mov eax, {}", reg)
+    state.load("eax", x.var)
     state.outl("cmp eax, 0")
     state.outl("jz .L{}", x.label.value)
+
+def gen_JP(x, state):
+    state.outl("jmp .L{}", x.label.value)
+
+def gen_JNZ(x, state):
+    state.load("eax", x.var)
+    state.outl("cmp eax, 0")
+    state.outl("jnz .L{}", x.label.value)
 
 
 def output_print(state):
@@ -192,7 +206,7 @@ def gen_asm(tac):
 
     state.out("section .bss")
     state.out("str0: resb 0x20")
-    setup_stack = True
+    setup_stack = False
     if setup_stack:
         state.out("_stack_start:")
         state.outl("resb 0xffff")
@@ -256,25 +270,34 @@ if __name__ == "__main__":
         {
             return 1
         }
-        int t0 := fib(a - 1)
-        int t1 := fib(a - 2)
-        return t0 + t1
+        return fib(a - 1) + fib(a - 2)
+    }
+
+    function factorial(int a) -> int
+    {
+        if(a < 2)
+        {
+            return 1
+        }
+        return a * factorial(a - 1)
     }
 
     function main()
     {
-        print(fib(0))
-        int a
+        for(int i := 0; i < 50; i += 1)
+        {
+            print(factorial(i))
+        }
     }
     """
 
     print(source)
     print("-" * 80)
-    tac = make_tac(source)
-    for x in tac:
+    t = make_tac(source)
+    for x in t:
         print(x)
     print("-" * 80)
-    out = gen_asm(tac)
+    out = gen_asm(t)
     print_asm = True
     if print_asm:
         print("----")
