@@ -1,7 +1,8 @@
 SRCDIR := ./src
+PYTHON := python3.4
 
 all:
-	$(SRCDIR)/codegen.py
+	$(PYTHON) $(SRCDIR)/codegen.py
 	nasm -g -f elf -l out.lst out.s
 	ld -melf_i386 -o out out.o
 
@@ -15,10 +16,10 @@ run: all
 	./out
 
 lex:
-	$(SRCDIR)/lexer.py
+	$(PYTHON) $(SRCDIR)/lexer.py
 
 test:
-	./test.py
+	$(PYTHON) ./test.py
 
 clean:
 	rm -Rf src/*.pyc *.pyc *.png *.txt htmlcov env

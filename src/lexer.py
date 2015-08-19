@@ -112,7 +112,7 @@ class Identifier(Token):
     def __new__(cls, value, line, pos, data):
         if value in keyword_list:
             return Keyword(value, line, pos, data)
-        out = object.__new__(cls, value, line, pos, data)
+        out = Token(value, line, pos, data)
         return out
 
 token_dict = (

@@ -31,8 +31,8 @@ class Parser(object):
     def cur(self):
         try:
             return self.tokens[self.pos]
-        except IndexError:
-            raise InvalidParse()
+        except IndexError as e:
+            raise InvalidParse() from e
 
     def expect(self, test, message = ""):
         if self.cur() != test:
@@ -98,8 +98,8 @@ def parse_identifier(parser):
         try:
             parser.next()
             identifiers.append(parser.accept(Identifier).get_value())
-        except InvalidParse:
-            raise ParseError("", parser.cur()), None, sys.exc_info()[2]
+        except InvalidParse as e:
+            raise ParseError("", parser.cur()) from e
     return ast.Identifier(*identifiers)
 
 @parsefunc
@@ -169,7 +169,7 @@ def parse_for(parser):
         parser.accept("}")
         return ast.For(decl, invariant, post, statements)
     except InvalidParse as e:
-        raise ParseError("", parser.cur()), None, sys.exc_info()[2]
+        raise ParseError("", parser.cur()) from e
 
 @parsefunc
 def parse_if(parser):
@@ -196,7 +196,7 @@ def parse_if(parser):
             failure = None
         return ast.If(cond = cond, success = success, failure = failure)
     except InvalidParse as e:
-        raise ParseError("", parser.cur()), None, sys.exc_info()[2]
+        raise ParseError("", parser.cur()) from e
 
 @parsefunc
 def parse_return(parser):
@@ -369,7 +369,7 @@ def parse_function(parser):
                             ret_type   = ret_type,
                             statements = statements)
     except InvalidParse as e:
-        raise ParseError("", parser.cur()), None, sys.exc_info()[2]
+        raise ParseError("", parser.cur()) from e
 
 @parsefunc
 def parse_while(parser):
@@ -384,16 +384,16 @@ def parse_while(parser):
         statements = parse_statement_list(parser)
         parser.accept("}")
         return ast.While(expr, statements)
-    except InvalidParse:
-        raise ParseError("", parser.cur()), None, sys.exc_info()[2]
+    except InvalidParse as e:
+        raise ParseError("", parser.cur()) from e
 
 @parsefunc
 def parse_import(parser):
     parser.accept("import")
     try:
         return ast.Import(parse_identifier(parser))
-    except InvalidParse:
-        raise ParseError("", parser.cur()), None, sys.exc_info()[2]
+    except InvalidParse as e:
+        raise ParseError("", parser.cur()) from e
 
 def parse_program(parser):
     statements = []
