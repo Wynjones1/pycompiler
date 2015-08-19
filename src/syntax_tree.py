@@ -20,15 +20,8 @@ class SemaData(object):
         self.ret_type = None
 
 class SemaError(RuntimeError):
-    IDENTIFIER_UNDEFINED    = 0
-    CALLING_NON_FUNCTION    = 1
-    FUNCTION_PARAM_MISMATCH = 2
-    FUNCTION_NOT_FOUND      = 3
-    NO_RETURN_VALUE         = 4
-    RETURN_VALUE_FROM_VOID  = 5
-    MULTIPLE_DECLARATIONS   = 6
-    def __init__(self, message, errno):
-        super(SemaError, self).__init__(message, errno)
+    def __init__(self, message):
+        super(SemaError, self).__init__(message)
 
 class SemaIdentifierUndefinedError(SemaError):
     pass
@@ -49,6 +42,12 @@ class SemaNoReturnValueError(SemaError):
     pass
 
 class SemaMultipleDeclarationError(SemaError):
+    pass
+
+class SemaIncorrectReturnTypeError(SemaError):
+    pass
+
+class SemaTypeResolveError(SemaError):
     pass
 
 
@@ -237,7 +236,7 @@ class If(AST):
     @semafunc
     def sema(self, data):
         type0 = self.cond.sema(data)
-        resolve_type(type0, "int")
+        resolve_type(type0, Type("int"))
         self.success.sema(data)
         if self.failure:
             self.failure.sema(data)
@@ -295,15 +294,20 @@ class Return(AST):
     @semafunc
     def sema(self, data):
         if self.statement:
-            type0 = self.statement.sema(data)
-            resolve_type(type0, data.ret_type)
+            # Check if we are returning from a void function
             if data.ret_type == ast.Type("void"):
                 msg = "Returning value from void function"
-                raise SemaReturnValueFromVoidError(msg, 5)
+                raise SemaReturnValueFromVoidError(msg)
+            # Check that the return type matched the data returned.
+            type0 = self.statement.sema(data)
+            try:
+                resolve_type(type0, data.ret_type)
+            except SemaTypeResolveError:
+                raise SemaIncorrectReturnTypeError("{} {}".format(type0, data.ret_type))
         elif data.ret_type != ast.Type("void"):
             #TODO: Improve the error message given.
             msg = "No return value given"
-            raise SemaNoReturnValueError(msg, 4)
+            raise SemaNoReturnValueError(msg)
 
     def make_tac(self, state):
         if self.statement:
@@ -313,8 +317,9 @@ class Return(AST):
         return [tac.Return(None)]
 
 def resolve_type(type0, type1, operation = None):
-    return
-    raise NotImplementedError()
+    if not type0 == type1:
+        raise SemaTypeResolveError("{} != {}".format(type0, type1))
+    return type0
 
 class Binop(AST):
     depth = 0
@@ -425,17 +430,17 @@ class FuncCall(AST):
             function = self.symbol_table[self.identifier]
         except KeyError:
             msg = "function {} cannot be found.".format(self.identifier.strval),
-            raise SemaFunctionUndefinedError(msg, 3)
+            raise SemaFunctionUndefinedError(msg)
         if not isinstance(function, Function):
             msg = "identifier {} is not a function".format(function)
-            raise SemaCallingNonFunctionError(msg, 1)
+            raise SemaCallingNonFunctionError(msg)
         if len(function.params) != len(self.params):
             raise SemaParamMismatchError(
-                      "number of arguments to function does not match",
-                      2)
+                      "number of arguments to function does not match")
         for type0, statement in zip(function.params, self.params):
             type1 = statement.sema(data)
-            resolve_type(type0, type1)
+            resolve_type(type0.type, type1)
+        return function.ret_type
 
     def make_tac(self, state):
         out = [] 
@@ -514,7 +519,7 @@ class For(AST):
             type0 = self.decl.sema(data)
         if self.invariant:
             type0 = self.invariant.sema(data)
-            resolve_type(type0, "int")
+            resolve_type(type0, Type("int"))
         if self.post:
             type0 = self.post.sema(data)
         self.statements.sema(data)
@@ -627,7 +632,7 @@ class Decl(AST):
         except KeyError:
             #TODO: Add a better error message
             msg = ""
-            raise SemaMultipleDeclarationError(msg, 6)
+            raise SemaMultipleDeclarationError(msg)
 
     @semafunc
     def sema(self, data):
@@ -716,7 +721,7 @@ class Identifier(AST):
             return self.symbol_table[self]
         except KeyError:
             msg = "Identifier '{}' cannot be found in the current scope.".format(self.strval)
-            raise SemaIdentifierUndefinedError(msg, 0)
+            raise SemaIdentifierUndefinedError(msg)
 
     def make_tac(self, state):
         var = state.rename_table[self]
@@ -746,10 +751,17 @@ class Literal(AST):
         return []
 
 class String(Literal):
+    count = 0
     def __init__(self, value):
         super(String, self).__init__(value)
+        self.count = String.count
+        String.count += 1
     def __str__(self):
         return '"{}"'.format(self.value)
+
+    @semafunc
+    def sema(self, data):
+        return Type("string")
 
 class Number(Literal):
     def __init__(self, value):
@@ -761,7 +773,7 @@ class Integer(Number):
 
     @semafunc
     def sema(self, data):
-        return "int"
+        return Type("int")
 
 class Float(Number):
     def __init__(self, value):
@@ -769,5 +781,6 @@ class Float(Number):
 
     @semafunc
     def sema(self, data):
-        return "int"
+        #TODO: Change to correct type.
+        return Type("int")
 

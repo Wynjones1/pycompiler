@@ -437,5 +437,14 @@ class TestSemaErrors(unittest.TestCase):
         """
         self.assertRaisesSemaError(data, SemaCallingNonFunctionError)
 
+    def test_returning_incorrect_type_0(self):
+        data = """\
+        function func_0() -> int
+        {
+            return "Some String"
+        }
+        """
+        self.assertRaisesSemaError(data, SemaIncorrectReturnTypeError)
+
 if __name__ == "__main__":
     unittest.main()

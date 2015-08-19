@@ -7,6 +7,7 @@ class CodeGenState(object):
         self.param_count = 0
         self.pos = 0
         self.pos_stack = []
+        self.strings = []
 
         # This will store the offsets for the
         # All of the frames
@@ -36,7 +37,6 @@ class CodeGenState(object):
     def sizeof(self, type):
         return 4
 
-
     def outl(self, line, *args, **kwargs):
         self.out("\t" + line, *args, **kwargs)
 
@@ -45,7 +45,11 @@ class CodeGenState(object):
 
     def load(self, register, var):
         if isinstance(var, (ast.Literal, str)):
-            self.outl("mov {}, {}", register, var)
+            if isinstance(var, ast.String):
+                self.outl("mov {}, strconst_{}", register, var.count)
+                self.strings.append(var)
+            else:
+                self.outl("mov {}, {}", register, var)
         elif isinstance(var, ast.Identifier):
             self.outl("mov {}, [ebp + {}]",register, self.get_offset(var))
 
@@ -86,7 +90,7 @@ class CodeGenState(object):
 
     def unset_base_pointer(self):
         self.outl("mov esp, ebp")
-        self.outl("pop ebp")
+        self.pop("ebp")
         self.pos = self.pos_stack.pop()
 
     def make_label(self):
@@ -203,7 +207,6 @@ def gen_asm(tac):
     state = CodeGenState()
     state.out("[BITS 32]")
 
-    state.out("section .data")
 
     state.out("section .bss")
     state.out("str0: resb 0x20")
@@ -221,9 +224,8 @@ def gen_asm(tac):
         state.outl("mov esp, _stack_start")
     state.outl("mov ebp, esp")
     state.outl("call main")
-    state.outl("mov ebx, 0")
-    state.outl("mov eax, 1")
-    state.outl("int 0x80")
+    state.push("eax")
+    state.outl("call exit")
 
     for x in tac:
         state.out(";------------------------------------| {}", x)
@@ -259,7 +261,12 @@ def gen_asm(tac):
             state.out(x)
         else:
             raise Exception(x.__class__.__name__)
+
     state.outl('%include "src/stdlib.asm"')
+    state.out("section .data")
+    for x in state.strings:
+        state.out("strconst_{}:", x.count)
+        state.out("db {}, 0", str(x))
 
     return "\n".join(state.output)
 
@@ -283,15 +290,16 @@ if __name__ == "__main__":
         return a * factorial(a - 1)
     }
 
-    function main()
+    function return_string() -> string
     {
-        int i := 0
-        while(i < 10)
-        {
-            print(factorial(i))
-            i += 1
-        }
-        print(1 + 10 * 10 / 2 + 1)
+        return "Hello, world"
+    }
+
+    function main() -> int
+    {
+        prints(return_string())
+
+        return 0
     }
     """
 

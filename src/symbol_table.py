@@ -55,18 +55,29 @@ class SubTable(SymbolTable):
     pass
 
 
-def dummy_function(name):
-    int_type = ast.Type(ast.Identifier("int"))
-    param_0  = ast.Decl(int_type, ast.Identifier("ast"), None)
+def dummy_function(name, return_type_name, *args):
+    return_type = ast.Type(ast.Identifier(return_type_name))
+    params = []
+    for i, j in enumerate(args):
+        param_name = "param_{}".format(i)
+        params.append(ast.Decl(ast.Type(j),
+                               ast.Identifier(param_name),
+                               None))
+        
     return ast.Function(ast.Identifier(name),
-                        ast.ParamList(param_0),
-                        ast.Type(ast.Identifier("void")),
+                        ast.ParamList(*params),
+                        return_type,
                         ast.StatementList())
 
+def add_dummy_function(name, return_type, *args):
+    _global_symbol_table[ast.Identifier(name)] = \
+                dummy_function(name, return_type, *args)
 def init_global_symbol_table():
     global _global_symbol_table
     if not _global_symbol_table:
         _global_symbol_table = True
         _global_symbol_table = SymbolTable()
         _global_symbol_table.parent = None
-        _global_symbol_table[ast.Identifier("print")] = dummy_function("print")
+        add_dummy_function("print", "void", "int")
+        add_dummy_function("prints", "void", "string")
+        add_dummy_function("putc", "void", "int")

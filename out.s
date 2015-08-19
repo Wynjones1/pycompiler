@@ -1,5 +1,4 @@
 [BITS 32]
-section .data
 section .bss
 str0: resb 0x20
 section .text
@@ -7,9 +6,8 @@ section .text
 _start:
 	mov ebp, esp
 	call main
-	mov ebx, 0
-	mov eax, 1
-	int 0x80
+	push eax
+	call exit
 ;------------------------------------| startfunc fib
 fib:
 	push ebp
@@ -132,92 +130,48 @@ factorial:
 	mov esp, ebp
 	pop ebp
 	ret
+;------------------------------------| startfunc return_string
+return_string:
+	push ebp
+	mov ebp, esp
+;------------------------------------| end_decls
+	sub esp, 0
+;------------------------------------| return "Hello, world"
+	mov eax, strconst_0
+	jmp .end
+;------------------------------------| endfunc return_string
+.end:
+	mov esp, ebp
+	pop ebp
+	ret
 ;------------------------------------| startfunc main
 main:
 	push ebp
 	mov ebp, esp
-;------------------------------------| decl _t18 int
 ;------------------------------------| decl _t11 int
-;------------------------------------| decl _t13 int
-;------------------------------------| decl i int
-;------------------------------------| decl _t15 int
-;------------------------------------| decl _t17 int
-;------------------------------------| decl _t14 int
-;------------------------------------| decl _t16 int
 ;------------------------------------| decl _t12 int
 ;------------------------------------| end_decls
-	sub esp, 36
-;------------------------------------| i := 0
-	mov eax, 0
-	mov dword [ebp + -16], eax
-;------------------------------------| JP .L3:
-	jmp .L3
-;------------------------------------| .L2:
-.L2:
-;------------------------------------| param i
-	mov eax, [ebp + -16]
+	sub esp, 8
+;------------------------------------| _t11 = CALL return_string
+	call return_string
+	mov dword [ebp + -4], eax
+	add esp, 0
+;------------------------------------| param _t11
+	mov eax, [ebp + -4]
 	push eax
-;------------------------------------| _t11 = CALL factorial
-	call factorial
+;------------------------------------| _t12 = CALL prints
+	call prints
 	mov dword [ebp + -8], eax
 	add esp, 4
-;------------------------------------| param _t11
-	mov eax, [ebp + -8]
-	push eax
-;------------------------------------| _t12 = CALL print
-	call print
-	mov dword [ebp + -36], eax
-	add esp, 4
-;------------------------------------| i := i + 1
-	mov eax, [ebp + -16]
-	mov ebx, 1
-	add eax, ebx
-	mov [ebp + -16], eax
-;------------------------------------| .L3:
-.L3:
-;------------------------------------| _t13 := i < 10
-	mov ecx, 1
-	mov eax, [ebp + -16]
-	mov ebx, 10
-	cmp eax, ebx
-	jl .L_2
-	mov ecx, 0
-.L_2:
-	mov dword [ebp + -12], ecx
-;------------------------------------| JNZ .L2: _t13
-	mov eax, [ebp + -12]
-	cmp eax, 0
-	jnz .L2
-;------------------------------------| _t14 := 10 * 10
-	mov eax, 10
-	mov ebx, 10
-	mul ebx
-	mov [ebp + -28], eax
-;------------------------------------| _t15 := _t14 / 2
-	mov eax, [ebp + -28]
-	mov ebx, 2
-	div ebx
-	mov [ebp + -20], eax
-;------------------------------------| _t16 := 1 + _t15
-	mov eax, 1
-	mov ebx, [ebp + -20]
-	add eax, ebx
-	mov [ebp + -32], eax
-;------------------------------------| _t17 := _t16 + 1
-	mov eax, [ebp + -32]
-	mov ebx, 1
-	add eax, ebx
-	mov [ebp + -24], eax
-;------------------------------------| param _t17
-	mov eax, [ebp + -24]
-	push eax
-;------------------------------------| _t18 = CALL print
-	call print
-	mov dword [ebp + -4], eax
-	add esp, 4
+;------------------------------------| return 0
+	mov eax, 0
+	jmp .end
 ;------------------------------------| endfunc main
 .end:
 	mov esp, ebp
 	pop ebp
 	ret
 	%include "src/stdlib.asm"
+section .data
+strconst_0:
+db "Hello, world", 0

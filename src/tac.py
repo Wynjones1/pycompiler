@@ -2,6 +2,7 @@
 import os
 from parse import *
 import syntax_tree as ast
+from graph import Graph
 
 class TempVar(object):
     def __init__(self, value):
@@ -267,8 +268,14 @@ if __name__ == "__main__":
     """
     prog = parse(test)
     tac = prog.make_tac(TacState())
+    graph = Graph()
+    last = None
     for x in tac:
         print(x)
+        graph.add_node(str(x))
+        if len(graph.nodes) > 1:
+            graph.add_edge(-2, -1)
+    graph.output("tac_output.png")
 
     """
     argument_parser = argparse.ArgumentParser()
