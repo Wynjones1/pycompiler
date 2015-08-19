@@ -42,3 +42,7 @@ print:
         mov esp, ebp
     pop ebp
     ret
+exit:
+	mov ebx, 0
+	mov eax, 1
+	int 0x80

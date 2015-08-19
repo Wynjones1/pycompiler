@@ -132,7 +132,8 @@ def gen_Op(x, state):
         "+" : "add eax,",
         "-" : "sub eax,",
         "*" : "mul"     ,
-        "<" : "cmp eax,"
+        "<" : "cmp eax,",
+        "/" : "div"
     }
     instr = instructions[x.op]
 
@@ -284,10 +285,13 @@ if __name__ == "__main__":
 
     function main()
     {
-        for(int i := 0; i < 50; i += 1)
+        int i := 0
+        while(i < 10)
         {
             print(factorial(i))
+            i += 1
         }
+        print(1 + 10 * 10 / 2 + 1)
     }
     """
 
@@ -300,7 +304,7 @@ if __name__ == "__main__":
     out = gen_asm(t)
     print_asm = True
     if print_asm:
-        print("----")
+        print("-" * 80)
         for lineno, line in enumerate(out.split("\n")):
             sys.stdout.write("{:02d}:{}\n".format(lineno + 1, line))
     open("out.s", "w").write(out)
