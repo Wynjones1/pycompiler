@@ -95,8 +95,12 @@ class TestParser(unittest.TestCase):
             self.assertTrue(p.done(), "Test {}: {}".format(idx, result))
 
     def test_identifier(self):
-        data = ["io.print", "hello", "a.b.d", "a.b_c123.d"]
+        data = ["print", "hello"]
         self._test_generic(data, parse_identifier, ast.Identifier)
+
+    def test_field_access(self):
+        data = ["io.print", "hello", "a.b.d", "a.b_c123.d"]
+        self._test_generic(data, parse_field_access, ast.FieldAccess)
 
     def test_string(self):
         data = ['"hello"']
@@ -221,24 +225,20 @@ class TestTAC(unittest.TestCase):
         tree = parse(data)
         tree.make_tac(TacState())
 
+@ddt
 class TestAST(unittest.TestCase):
-    def test_ast_identifier_equals(self):
-        id0 = ast.Identifier("a")
-        id1 = ast.Identifier("a", "b")
-        data = [(ast.Identifier("a", "b"), ast.Identifier("a", "b")),
-                (ast.Identifier("a"), ast.Identifier("a")),
-                (ast.Identifier("a", "b", "c"), ast.Identifier("a", "b", "c")),
-                (id0, id0),
-                (id1, id1)
-               ]
+    @data((ast.FieldAccess("a", "b"),      ast.FieldAccess("a", "b")),
+          (ast.FieldAccess("a"),           ast.FieldAccess("a")),
+          (ast.FieldAccess("a", "b", "c"), ast.FieldAccess("a", "b", "c")))
+    def test_ast_field_access(self):
         for lhs, rhs in data:
             self.assertEquals(lhs, rhs)
 
-    def test_ast_identifier_not_equals(self):
-        id0 = ast.Identifier("a")
-        id1 = ast.Identifier("a", "b")
-        data = [(ast.Identifier("a"), ast.Identifier("b")),
-                (ast.Identifier("a"), ast.Identifier("a", "b"))]
+    def test_ast_field_access_not_equals(self):
+        id0 = ast.FieldAccess("a")
+        id1 = ast.FieldAccess("a", "b")
+        data = [(ast.FieldAccess("a"), ast.FieldAccess("b")),
+                (ast.FieldAccess("a"), ast.FieldAccess("a", "b"))]
         for lhs, rhs in data:
             self.assertNotEquals(lhs, rhs)
 

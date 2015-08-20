@@ -429,7 +429,7 @@ class FuncCall(AST):
         try:
             function = self.symbol_table[self.identifier]
         except KeyError:
-            msg = "function {} cannot be found.".format(self.identifier.strval),
+            msg = "function {} cannot be found.".format(self.identifier.value),
             raise SemaFunctionUndefinedError(msg)
         if not isinstance(function, Function):
             msg = "identifier {} is not a function".format(function)
@@ -681,19 +681,18 @@ class ParamList(AST):
         return out
 
 class Identifier(AST):
-    def __init__(self, *identifiers):
+    def __init__(self, value):
         super(Identifier, self).__init__()
-        self.identifiers = identifiers
-        self.strval      = ".".join(identifiers)
+        self.value = value
 
     def __repr__(self):
-        return "Identifier<{}>".format(self.strval)
+        return "Identifier<{}>".format(self.value)
 
     def __str__(self):
-        return self.strval
+        return self.value
 
     def make_graph(self, graph):
-        node0 = make_node(self.strval, graph)
+        node0 = make_node(str(self), graph)
         return node0
 
     def make_tables(self, table):
@@ -702,31 +701,38 @@ class Identifier(AST):
     def suffix(self, string):
         """ Add a suffix to a single length identifier
         """
-        assert(len(self.identifiers) == 1)
-        return Identifier(self.identifiers[0] + string)
+        return Identifier(self.value + string)
 
     def __eq__(self, other):
-        if not isinstance(other, Identifier):
-            return False
-        if len(self.identifiers) != len(other.identifiers):
-            return False
-        return all(x == y for x, y, in zip(self.identifiers, other.identifiers))
+        try:
+            return self.value == other.value
+        except:
+            raise ValueError("Connot compare identifier with object of type {}".format(other.__class__.__name__))
 
     def __hash__(self):
-        return self.strval.__hash__()
+        return self.value.__hash__()
 
     @semafunc
     def sema(self, data):
         try:
             return self.symbol_table[self]
         except KeyError:
-            msg = "Identifier '{}' cannot be found in the current scope.".format(self.strval)
+            msg = "Identifier '{}' cannot be found in the current scope.".format(self.value)
             raise SemaIdentifierUndefinedError(msg)
 
     def make_tac(self, state):
         var = state.rename_table[self]
         state.set_var(var)
         return []
+
+class FieldAccess(AST):
+    def __init__(self, *identifiers):
+        self.identifiers = identifiers
+
+    def __repr__(self):
+        return ".".join(self.identifiers)
+    def __str__(self):
+        return ".".join(self.identifiers)
 
 class Literal(AST):
     def __init__(self, value):

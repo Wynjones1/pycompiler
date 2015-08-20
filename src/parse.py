@@ -93,14 +93,20 @@ class ParseError(RuntimeError):
 
 @parsefunc
 def parse_identifier(parser):
-    identifiers = [parser.accept(Identifier).get_value()]
+    return ast.Identifier(parser.accept(Identifier).get_value())
+
+@parsefunc
+def parse_field_access(parser):
+    identifiers = [parse_identifier(parser)]
+    if not parser.peek("."):
+        raise ParseError("", parser.cur())
     while parser.peek("."):
         try:
             parser.next()
-            identifiers.append(parser.accept(Identifier).get_value())
+            identifiers.append(parse_identifier(parser))
         except InvalidParse:
             raise ParseError("", parser.cur()), None, sys.exc_info()[2]
-    return ast.Identifier(*identifiers)
+    return ast.FieldAccess(*identifiers)
 
 @parsefunc
 def parse_string(parser):
