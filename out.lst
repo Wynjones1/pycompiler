@@ -26,9 +26,9 @@
     26 00000018 8B4508                  	mov eax, [ebp + 8]
     27 0000001B BB02000000              	mov ebx, 2
     28 00000020 39D8                    	cmp eax, ebx
-    29 00000022 7C05                    	jl .L_0
+    29 00000022 7C05                    	jl .cmp0
     30 00000024 B900000000              	mov ecx, 0
-    31                                  .L_0:
+    31                                  .cmp0:
     32 00000029 894DF8                  	mov dword [ebp + -8], ecx
     33                                  ;------------------------------------| JZ .L0: _t1
     34 0000002C 8B45F8                  	mov eax, [ebp + -8]
@@ -92,9 +92,9 @@
     92 00000092 8B4508                  	mov eax, [ebp + 8]
     93 00000095 BB02000000              	mov ebx, 2
     94 0000009A 39D8                    	cmp eax, ebx
-    95 0000009C 7C05                    	jl .L_1
+    95 0000009C 7C05                    	jl .cmp1
     96 0000009E B900000000              	mov ecx, 0
-    97                                  .L_1:
+    97                                  .cmp1:
     98 000000A3 894DF0                  	mov dword [ebp + -16], ecx
     99                                  ;------------------------------------| JZ .L1: _t7
    100 000000A6 8B45F0                  	mov eax, [ebp + -16]
@@ -171,7 +171,7 @@
    171 0000011D 89EC                    	mov esp, ebp
    172 0000011F 5D                      	pop ebp
    173 00000120 C3                      	ret
-   174                                  	%include "src/stdlib.asm"
+   174                                  	%include "stdlib/stdlib.asm"
    175                              <1> %define ASCII_0       0x30
    176                              <1> %define ASCII_NEWLINE 0xa
    177                              <1> %define BUFSIZE 10

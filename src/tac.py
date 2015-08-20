@@ -82,7 +82,7 @@ class TacState(object):
         self.decl_list = set()
 
     def last_var(self):
-        assert self._last_var != None
+        assert self._last_var
         return self._last_var
 
     def set_var(self, var):

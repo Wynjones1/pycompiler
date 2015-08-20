@@ -84,6 +84,13 @@ class TestLexer(unittest.TestCase):
 
 @ddt
 class TestParser(unittest.TestCase):
+    def assertIsFunction(self, data):
+        self.assertIsInstance(data, ast.Function)
+        self.assertIsInstance(data.name,      ast.Identifier)
+        self.assertIsInstance(data.params,    ast.ParamList)
+        self.assertIsInstance(data.ret_type,  ast.Type)
+        self.assertIsInstance(data.statements,ast.StatementList)
+
     def _test_generic(self, data, func, typeof):
         for idx, i in enumerate(data):
             p = Parser(i)
@@ -99,7 +106,7 @@ class TestParser(unittest.TestCase):
         self._test_generic(data, parse_identifier, ast.Identifier)
 
     def test_field_access(self):
-        data = ["io.print", "hello", "a.b.d", "a.b_c123.d"]
+        data = ["io.print", "a.b.d", "a.b_c123.d"]
         self._test_generic(data, parse_field_access, ast.FieldAccess)
 
     def test_string(self):
@@ -162,12 +169,6 @@ class TestParser(unittest.TestCase):
         }"""]
         self._test_generic(data, parse_function, ast.Function)
 
-    def assertIsFunction(self, data):
-        self.assertIsInstance(data, ast.Function)
-        self.assertIsInstance(data.name,      ast.Identifier)
-        self.assertIsInstance(data.params,    ast.ParamList)
-        self.assertIsInstance(data.ret_type,  ast.Type)
-        self.assertIsInstance(data.statements,ast.StatementList)
 
     @data("function a(){}")
     def test_function_param_list(self, data):
@@ -200,6 +201,26 @@ class TestParser(unittest.TestCase):
         data = ["import io.network"]
         self._test_generic(data, parse_import, ast.Import)
 
+    def test_structure_0(self):
+        data = """\
+        struct name
+        {
+            int v0
+        }
+        """
+        self._test_generic([data], parse_struct, ast.Struct)
+
+    def test_structure_1(self):
+        data = """\
+        struct name
+        {
+            int v0
+            int v1
+            int v2
+        }
+        """
+        self._test_generic([data], parse_struct, ast.Struct)
+
 class TestParserFail(unittest.TestCase):
     def _test_fail(self, func, data):
         for x in data:
@@ -230,9 +251,8 @@ class TestAST(unittest.TestCase):
     @data((ast.FieldAccess("a", "b"),      ast.FieldAccess("a", "b")),
           (ast.FieldAccess("a"),           ast.FieldAccess("a")),
           (ast.FieldAccess("a", "b", "c"), ast.FieldAccess("a", "b", "c")))
-    def test_ast_field_access(self):
-        for lhs, rhs in data:
-            self.assertEquals(lhs, rhs)
+    def test_ast_field_access(self, data):
+        self.assertEquals(data[0], data[1])
 
     def test_ast_field_access_not_equals(self):
         id0 = ast.FieldAccess("a")
@@ -344,6 +364,26 @@ class TestSema(unittest.TestCase):
             {
                 print(i)
             }
+        }
+        """
+        tree = parse(data)
+        tree.sema()
+
+    def test_struct_decl_and_use(self):
+        data = """\
+        struct vector
+        {
+            int v0
+            int v1
+            int v2
+        }
+
+        function f0()
+        {
+            vector a
+            a.v0 := 1
+            a.v1 := 2
+            a.v2 := 3
         }
         """
         tree = parse(data)

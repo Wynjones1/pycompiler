@@ -104,6 +104,7 @@ keyword_list = (
     "import",
     "or",
     "return",
+    "struct",
     "while",
     "xor",
 )
@@ -185,7 +186,7 @@ def tokenise(data):
         else:
             raise Exception("Lexing error:\n{}".format(string))
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     import argparse
     import os
     from   os.path import join as pjoin

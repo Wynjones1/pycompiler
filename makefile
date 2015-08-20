@@ -3,12 +3,14 @@ SRCDIR := ./src
 all:
 	$(SRCDIR)/codegen.py
 	nasm -g -f elf -l out.lst out.s
-	ld -melf_i386 -o out out.o
+	gcc -m32 ./stdlib/malloc.c -nostdlib -c 
+	ld -melf_i386 -o out out.o malloc.o
 
 .PHONY: asm test
 asm:
 	nasm -g -f elf test.s
-	ld -melf_i386 -o test test.o
+	gcc -m32 ./stdlib/malloc.c -nostdlib -c 
+	ld -melf_i386 -o test test.o malloc.o
 	./test
 
 run: all

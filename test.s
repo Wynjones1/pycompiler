@@ -2,10 +2,9 @@
 section .bss
 section .text
 global _start
+extern return_10
 _start:
-    call main
-    mov ebx, 0
+    call return_10
+    mov ebx, eax
     mov eax, 1
     int 0x80
-main:
-    ret

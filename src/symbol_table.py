@@ -31,7 +31,7 @@ class SymbolTable(object):
             raise
 
     def __setitem__(self, key, value):
-        assert(isinstance(value, (ast.Function, ast.Type)))
+        assert(isinstance(value, (ast.Function, ast.Type, ast.Struct)))
         assert(isinstance(key, ast.Identifier))
         if key in self.data.keys():
             raise KeyError()

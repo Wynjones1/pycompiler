@@ -99,7 +99,7 @@ def parse_identifier(parser):
 def parse_field_access(parser):
     identifiers = [parse_identifier(parser)]
     if not parser.peek("."):
-        raise ParseError("", parser.cur())
+        raise InvalidParse("", parser.cur())
     while parser.peek("."):
         try:
             parser.next()
@@ -240,6 +240,7 @@ def parse_func_call(parser):
 @parsefunc
 def parse_atomic_expr(parser):
     funcs = (parse_func_call,
+             parse_field_access,
              parse_identifier,
              parse_number,
              parse_paren_expr,
@@ -406,7 +407,7 @@ def parse_program(parser):
     parser.consume("\n")
     try:
         while not parser.done():
-            for func in (parse_function, parse_import):
+            for func in (parse_function, parse_import, parse_struct):
                 try:
                     statements.append(func(parser))
                     break
@@ -419,6 +420,26 @@ def parse_program(parser):
     except ParseError as e:
         print(e[1].highlight(10, 10))
         raise
+
+def parse_struct(parser):
+    parser.accept("struct")
+    try:
+        struct_name = parse_identifier(parser)
+        parser.consume("\n")
+        parser.accept("{")
+        parser.consume("\n")
+        field_list = []
+        while not parser.peek("}"):
+            type = parse_type(parser)
+            name = parse_identifier(parser)
+            parser.consume("\n")
+            field_list.append(ast.Field(type, name))
+        parser.consume("\n")
+        parser.accept("}")
+        parser.consume("\n")
+        return ast.Struct(struct_name, field_list)
+    except InvalidParse:
+        raise ParseError("", parser.cur()), None, sys.exc_info()[2]
 
 def parse(tokens):
     parser  = Parser(tokens)

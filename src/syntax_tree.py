@@ -703,9 +703,15 @@ class Identifier(AST):
         """
         return Identifier(self.value + string)
 
-    def __eq__(self, other):
+    def __cmp__(self, other):
         try:
-            return self.value == other.value
+            if self.value < other.value:
+                return -1
+            if self.value == other.value:
+                return 0
+            return 1
+        except AttributeError:
+            return 0
         except:
             raise ValueError("Connot compare identifier with object of type {}".format(other.__class__.__name__))
 
@@ -731,8 +737,33 @@ class FieldAccess(AST):
 
     def __repr__(self):
         return ".".join(self.identifiers)
+
     def __str__(self):
-        return ".".join(self.identifiers)
+        return ".".join([str(x) for x in self.identifiers])
+
+    def __cmp__(self, other):
+        if str(self) < str(other):
+            return -1
+        if str(self) == str(other):
+            return 0
+        return 1
+
+    def make_tables(self, table):
+        self.symbol_table = table 
+
+class Field(AST):
+    def __init__(self, type, name):
+        self.type = type
+        self.name = name
+
+class Struct(AST):
+    def __init__(self, name, *fields):
+        self.name   = name
+        self.fields = fields
+
+    def make_tables(self, table):
+        self.symbol_table = table
+        table[self.name] = self
 
 class Literal(AST):
     def __init__(self, value):

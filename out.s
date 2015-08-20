@@ -26,9 +26,9 @@ fib:
 	mov eax, [ebp + 8]
 	mov ebx, 2
 	cmp eax, ebx
-	jl .L_0
+	jl .cmp0
 	mov ecx, 0
-.L_0:
+.cmp0:
 	mov dword [ebp + -8], ecx
 ;------------------------------------| JZ .L0: _t1
 	mov eax, [ebp + -8]
@@ -92,9 +92,9 @@ factorial:
 	mov eax, [ebp + 8]
 	mov ebx, 2
 	cmp eax, ebx
-	jl .L_1
+	jl .cmp1
 	mov ecx, 0
-.L_1:
+.cmp1:
 	mov dword [ebp + -16], ecx
 ;------------------------------------| JZ .L1: _t7
 	mov eax, [ebp + -16]
@@ -171,7 +171,7 @@ main:
 	mov esp, ebp
 	pop ebp
 	ret
-	%include "src/stdlib.asm"
+	%include "stdlib/stdlib.asm"
 section .data
 strconst_0:
 db "Hello, world", 0

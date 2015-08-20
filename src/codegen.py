@@ -159,9 +159,9 @@ def gen_CMP(x, state):
                    ">=" : "jge",
                    "==" : "je",
                    "!=" : "jne"}
-    state.outl("{} .L_{}", jump_table[x.op], label)
+    state.outl("{} .cmp{}", jump_table[x.op], label)
     state.load("ecx", "0")
-    state.out(".L_{}:", label)
+    state.out(".cmp{}:", label)
     state.store(x.assign, "ecx")
     pass
 
@@ -262,7 +262,7 @@ def gen_asm(tac):
         else:
             raise Exception(x.__class__.__name__)
 
-    state.outl('%include "src/stdlib.asm"')
+    state.outl('%include "stdlib/stdlib.asm"')
     state.out("section .data")
     for x in state.strings:
         state.out("strconst_{}:", x.count)
@@ -270,7 +270,7 @@ def gen_asm(tac):
 
     return "\n".join(state.output)
 
-if __name__ == "__main__":
+def main():
     source = """\
     function fib(int a) -> int
     {
@@ -316,3 +316,6 @@ if __name__ == "__main__":
         for lineno, line in enumerate(out.split("\n")):
             sys.stdout.write("{:02d}:{}\n".format(lineno + 1, line))
     open("out.s", "w").write(out)
+
+if __name__ == "__main__":
+    main()
